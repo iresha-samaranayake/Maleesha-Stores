@@ -26,12 +26,15 @@ export default function Footer() {
             <ul className="space-y-3 text-sm">
               <li className="flex items-start gap-2.5">
                 <MapPin className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
-                <span>No. 45, Main Street, Local Town</span>
+                <span>No. 001,Church Road,Nagoda,Kandana</span>
               </li>
               <li className="flex items-center gap-2.5">
                 <Phone className="w-5 h-5 text-emerald-500 shrink-0" />
-                <a href="tel:+94112345678" className="hover:text-white transition">
-                  +94 11 234 5678
+                <a href="tel:+94112240513" className="hover:text-white transition">
+                  +94 11 22 40 513
+                </a>
+                <a href="tel:+94768419274" className="hover:text-white transition">
+                  +94 76 841 9274
                 </a>
               </li>
             </ul>
