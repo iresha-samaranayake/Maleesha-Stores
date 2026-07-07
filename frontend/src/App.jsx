@@ -7,11 +7,13 @@ import CartDrawer from './components/CartDrawer';
 import CheckoutForm from './components/CheckoutForm';
 import AdminDashboard from './components/AdminDashboard';
 import Footer from './components/Footer';
+import UploadBillModal from './components/UploadBillModal';
 
 function MainAppContent() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isAdminView, setIsAdminView] = useState(false);
+  const [isUploadBillOpen, setIsUploadBillOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -26,6 +28,7 @@ function MainAppContent() {
     <div className="flex flex-col min-h-screen">
       <Navbar
         onCartOpen={() => setIsCartOpen(true)}
+        onUploadBillOpen={() => setIsUploadBillOpen(true)}
         onAdminToggle={handleAdminToggle}
         isAdminView={isAdminView}
         searchQuery={searchQuery}
@@ -93,6 +96,12 @@ function MainAppContent() {
       <CheckoutForm
         isOpen={isCheckoutOpen}
         onClose={() => setIsCheckoutOpen(false)}
+      />
+
+      {/* Upload Bill Modal */}
+      <UploadBillModal 
+        isOpen={isUploadBillOpen}
+        onClose={() => setIsUploadBillOpen(false)}
       />
     </div>
   );
