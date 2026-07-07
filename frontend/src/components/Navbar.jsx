@@ -1,9 +1,9 @@
 import React, { useContext } from 'react';
-import { ShoppingBag, Search, ShieldCheck } from 'lucide-react';
+import { ShoppingBag, Search, ShieldCheck, UploadCloud } from 'lucide-react';
 import { CartContext } from '../context/CartContext';
 import logoImg from '../assets/logo.png';
 
-export default function Navbar({ onCartOpen, onAdminToggle, isAdminView, searchQuery, setSearchQuery }) {
+export default function Navbar({ onCartOpen, onUploadBillOpen, onAdminToggle, isAdminView, searchQuery, setSearchQuery }) {
   const { totalItems } = useContext(CartContext);
 
   return (
@@ -56,6 +56,17 @@ export default function Navbar({ onCartOpen, onAdminToggle, isAdminView, searchQ
               <ShieldCheck className="w-4 h-4 text-emerald-600" />
               <span className="hidden md:inline">{isAdminView ? 'Customer Mode' : 'Admin Panel'}</span>
             </button>
+
+            {/* Upload Bill Trigger */}
+            {!isAdminView && (
+              <button
+                onClick={onUploadBillOpen}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition shadow-sm"
+              >
+                <UploadCloud className="w-4 h-4" />
+                <span className="hidden sm:inline">Upload Bill</span>
+              </button>
+            )}
 
             {/* Cart Trigger */}
             {!isAdminView && (
