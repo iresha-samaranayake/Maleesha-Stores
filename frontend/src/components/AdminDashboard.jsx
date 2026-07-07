@@ -3,8 +3,10 @@ import axios from 'axios';
 import { 
   Key, ShieldAlert, Plus, Edit, Trash2, Check, RefreshCw, 
   Layers, Package, FileText, ArrowLeft, Loader, CheckCircle, 
-  MapPin, Phone, User, Eye, EyeOff
+  MapPin, Phone, User, Eye, EyeOff, FileImage
 } from 'lucide-react';
+import { io } from 'socket.io-client';
+import AdminBillsView from './AdminBillsView';
 
 const COMMON_ICONS = [
   'Apple', 'Leaf', 'Egg', 'Croissant', 'Coffee', 'Package', 
@@ -16,7 +18,9 @@ export default function AdminDashboard({ onBackToShop }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authError, setAuthError] = useState(null);
   
-  const [activeTab, setActiveTab] = useState('orders'); // orders, products, categories
+  const [activeTab, setActiveTab] = useState('orders'); // orders, products, categories, bills
+  const [newBillTick, setNewBillTick] = useState(0); // For triggering refetch on socket event
+
   
   // Data States
   const [categories, setCategories] = useState([]);
@@ -78,6 +82,17 @@ export default function AdminDashboard({ onBackToShop }) {
   useEffect(() => {
     if (isAuthenticated) {
       fetchData();
+      
+      const socket = io('http://localhost:5000');
+      socket.on('new-bill', (bill) => {
+        // Trigger a re-render/refetch in AdminBillsView
+        setNewBillTick(prev => prev + 1);
+        
+        // Show notification (simple alert or console for now)
+        alert(`New bill uploaded by ${bill.customerName}!`);
+      });
+
+      return () => socket.disconnect();
     }
   }, [isAuthenticated]);
 
@@ -298,6 +313,17 @@ export default function AdminDashboard({ onBackToShop }) {
         >
           <Layers className="w-4.5 h-4.5" />
           Categories ({categories.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('bills')}
+          className={`flex items-center gap-2 pb-3 text-sm font-semibold border-b-2 transition ${
+            activeTab === 'bills'
+              ? 'border-emerald-600 text-emerald-700'
+              : 'border-transparent text-slate-400 hover:text-slate-700'
+          }`}
+        >
+          <FileImage className="w-4.5 h-4.5" />
+          Uploaded Bills
         </button>
       </div>
 
@@ -613,6 +639,11 @@ export default function AdminDashboard({ onBackToShop }) {
                 )}
               </div>
             </div>
+          )}
+
+          {/* TAB 4: UPLOADED BILLS */}
+          {activeTab === 'bills' && (
+            <AdminBillsView newBills={newBillTick} />
           )}
         </>
       )}
