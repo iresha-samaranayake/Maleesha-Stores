@@ -1,116 +1,112 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { ToastProvider } from './context/ToastContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
-import Navbar from './components/Navbar';
-import CategoryBar from './components/CategoryBar';
-import ProductGrid from './components/ProductGrid';
-import CartDrawer from './components/CartDrawer';
-import CheckoutForm from './components/CheckoutForm';
+
+// Layouts
+import AuthLayout from './components/AuthLayout';
+import CustomerLayout from './components/CustomerLayout';
+import AdminLayout from './components/AdminLayout';
+
+// Protectors
+import { ProtectedRoute, RoleProtectedRoute } from './components/ProtectedRoute';
+
+// Auth Pages
+import Login from './components/Login';
+import Register from './components/Register';
+
+// Customer Pages
+import CustomerDashboard from './components/CustomerDashboard';
+import CustomerOrders from './components/CustomerOrders';
+import CustomerCart from './components/CustomerCart';
+import CustomerCheckout from './components/CustomerCheckout';
+import ProfileSettings from './components/ProfileSettings';
+
+// Admin Pages
 import AdminDashboard from './components/AdminDashboard';
-import Footer from './components/Footer';
-import UploadBillModal from './components/UploadBillModal';
+import AdminProducts from './components/AdminProducts';
+import AdminOrders from './components/AdminOrders';
+import AdminUsers from './components/AdminUsers';
+import AdminCategories from './components/AdminCategories';
+import AdminReports from './components/AdminReports';
+
+// Home Redirect Component
+function HomeRedirect() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="animate-spin rounded-full h-10 w-10 border-4 border-slate-200 border-t-emerald-600"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (user.role === 'admin') {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
+
+  return <Navigate to="/customer/dashboard" replace />;
+}
 
 function MainAppContent() {
-  const [isCartOpen, setIsCartOpen] = useState(false);
-  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
-  const [isAdminView, setIsAdminView] = useState(false);
-  const [isUploadBillOpen, setIsUploadBillOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState(null);
-  const [searchQuery, setSearchQuery] = useState('');
-
-  const handleAdminToggle = (mode) => {
-    setIsAdminView(mode);
-    // Reset selections when shifting views
-    setSelectedCategory(null);
-    setSearchQuery('');
-  };
-
   return (
-    <div className="flex flex-col min-h-screen">
-      <Navbar
-        onCartOpen={() => setIsCartOpen(true)}
-        onUploadBillOpen={() => setIsUploadBillOpen(true)}
-        onAdminToggle={handleAdminToggle}
-        isAdminView={isAdminView}
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-      />
+    <Routes>
+      {/* Home Redirect */}
+      <Route path="/" element={<HomeRedirect />} />
 
-      <main className="flex-1 bg-slate-50">
-        {isAdminView ? (
-          <AdminDashboard onBackToShop={() => handleAdminToggle(false)} />
-        ) : (
-          <>
-            {/* Friendly store welcome banner */}
-            <div className="relative overflow-hidden bg-gradient-to-r from-emerald-900 via-emerald-700 to-emerald-800 text-white py-14 px-4 sm:px-6 lg:px-8">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.14),transparent_35%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.08),transparent_30%)] opacity-90 pointer-events-none" />
-              <div className="absolute inset-y-0 right-0 w-72 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.12),transparent_60%)] opacity-90 pointer-events-none" />
-              <div className="relative max-w-6xl mx-auto text-center space-y-5">
-                <span className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-900/80 backdrop-blur rounded-full text-xs font-semibold tracking-wider uppercase border border-white/15">
-                  🍃 Pure, Fresh & Local
-                </span>
-                <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight leading-tight text-white max-w-3xl mx-auto">
-                  Maleesha Stores
-                </h1>
-                <p className="mx-auto max-w-2xl text-sm sm:text-base text-emerald-100/85 leading-relaxed">
-                  Your local neighborhood family grocery store. Enjoy fresh produce, dairy, bakery products, and daily essentials — delivered with care and great value.
-                </p>
-                <div className="mt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
-                  <button className="inline-flex items-center justify-center rounded-full bg-white text-emerald-900 px-6 py-3 text-sm font-semibold shadow-lg shadow-emerald-900/15 hover:bg-emerald-50 transition">
-                    Shop Now
-                  </button>
-                  <button className="inline-flex items-center justify-center rounded-full border border-white/20 bg-white/10 text-white px-6 py-3 text-sm font-semibold hover:bg-white/15 transition">
-                    Browse Categories
-                  </button>
-                </div>
-              </div>
-            </div>
+      {/* Guest/Auth routes wrapped in AuthLayout */}
+      <Route element={<AuthLayout />}>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+      </Route>
 
-            {/* Category tabs scroll */}
-            <CategoryBar
-              selectedCategory={selectedCategory}
-              onSelectCategory={setSelectedCategory}
-            />
+      {/* Customer Protected routes wrapped in CustomerLayout */}
+      <Route element={<RoleProtectedRoute allowedRoles={['customer']} />}>
+        <Route element={<CustomerLayout />}>
+          <Route path="/customer/dashboard" element={<CustomerDashboard />} />
+          <Route path="/customer/profile" element={<ProfileSettings />} />
+          <Route path="/customer/orders" element={<CustomerOrders />} />
+          <Route path="/customer/cart" element={<CustomerCart />} />
+          <Route path="/customer/checkout" element={<CustomerCheckout />} />
+        </Route>
+      </Route>
 
-            {/* Catalog Grid */}
-            <ProductGrid
-              selectedCategory={selectedCategory}
-              searchQuery={searchQuery}
-            />
-          </>
-        )}
-      </main>
+      {/* Admin Protected routes wrapped in AdminLayout */}
+      <Route element={<RoleProtectedRoute allowedRoles={['admin']} />}>
+        <Route element={<AdminLayout />}>
+          <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+          <Route path="/admin/dashboard" element={<AdminDashboard />} />
+          <Route path="/admin/products" element={<AdminProducts />} />
+          <Route path="/admin/orders" element={<AdminOrders />} />
+          <Route path="/admin/users" element={<AdminUsers />} />
+          <Route path="/admin/categories" element={<AdminCategories />} />
+          <Route path="/admin/reports" element={<AdminReports />} />
+          <Route path="/admin/profile" element={<ProfileSettings />} />
+        </Route>
+      </Route>
 
-      <Footer />
-
-      {/* Cart Slider */}
-      <CartDrawer
-        isOpen={isCartOpen}
-        onClose={() => setIsCartOpen(false)}
-        onCheckout={() => {
-          setIsCartOpen(false);
-          setIsCheckoutOpen(true);
-        }}
-      />
-
-      {/* Checkout Dialog Modal */}
-      <CheckoutForm
-        isOpen={isCheckoutOpen}
-        onClose={() => setIsCheckoutOpen(false)}
-      />
-
-      {/* Upload Bill Modal */}
-      <UploadBillModal 
-        isOpen={isUploadBillOpen}
-        onClose={() => setIsUploadBillOpen(false)}
-      />
-    </div>
+      {/* Catch-all */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }
 
 export default function App() {
   return (
-    <CartProvider>
-      <MainAppContent />
-    </CartProvider>
+    <BrowserRouter>
+      <ToastProvider>
+        <AuthProvider>
+          <CartProvider>
+            <MainAppContent />
+          </CartProvider>
+        </AuthProvider>
+      </ToastProvider>
+    </BrowserRouter>
   );
 }
