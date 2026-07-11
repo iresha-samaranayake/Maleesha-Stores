@@ -16,8 +16,13 @@ export default function CategoryBar({ selectedCategory, onSelectCategory }) {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-        const res = await axios.get(`${apiUrl}/categories`);
+        const storedUser = localStorage.getItem('userInfo');
+        const token = storedUser ? JSON.parse(storedUser).token : '';
+        const headers = {};
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+        const res = await axios.get('/api/categories', { headers });
         setCategories(res.data);
         setLoading(false);
       } catch (err) {
