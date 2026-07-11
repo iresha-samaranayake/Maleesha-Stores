@@ -1,10 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const Category = require('../models/Category');
+const { authenticateUser, authorizeRoles } = require('../middleware/authMiddleware');
 
 // @desc    Get all categories
 // @route   GET /api/categories
-router.get('/', async (req, res, next) => {
+router.get('/', authenticateUser, async (req, res, next) => {
   try {
     const categories = await Category.find().sort({ name: 1 });
     res.json(categories);
@@ -15,10 +16,10 @@ router.get('/', async (req, res, next) => {
 
 // @desc    Create a category
 // @route   POST /api/categories
-router.post('/', async (req, res, next) => {
+router.post('/', authenticateUser, authorizeRoles('admin'), async (req, res, next) => {
   try {
     const { name, icon_url, slug } = req.body;
-    
+
     // Auto-generate slug if not provided
     const categorySlug = slug || name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
 
@@ -37,10 +38,10 @@ router.post('/', async (req, res, next) => {
 
 // @desc    Update a category
 // @route   PUT /api/categories/:id
-router.put('/:id', async (req, res, next) => {
+router.put('/:id', authenticateUser, authorizeRoles('admin'), async (req, res, next) => {
   try {
     const { name, icon_url, slug } = req.body;
-    
+
     const category = await Category.findById(req.params.id);
     if (!category) {
       return res.status(404).json({ success: false, message: 'Category not found' });
@@ -63,7 +64,7 @@ router.put('/:id', async (req, res, next) => {
 
 // @desc    Delete a category
 // @route   DELETE /api/categories/:id
-router.delete('/:id', async (req, res, next) => {
+router.delete('/:id', authenticateUser, authorizeRoles('admin'), async (req, res, next) => {
   try {
     const category = await Category.findById(req.params.id);
     if (!category) {
