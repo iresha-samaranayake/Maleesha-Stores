@@ -2,10 +2,27 @@ const express = require('express');
 const router = express.Router();
 const Order = require('../models/Order');
 const Product = require('../models/Product');
+const { authenticateUser, authorizeRoles } = require('../middleware/authMiddleware');
+
+// @desc    Get current user's orders (matched by phone stored in user profile)
+// @route   GET /api/orders/myorders
+router.get('/myorders', authenticateUser, authorizeRoles('customer'), async (req, res, next) => {
+  try {
+    const User = require('../models/User');
+    const user = await User.findById(req.user._id);
+    if (!user || !user.phone) {
+      return res.json([]);
+    }
+    const orders = await Order.find({ 'customerDetails.phone': user.phone }).sort({ createdAt: -1 }).limit(10);
+    res.json(orders);
+  } catch (err) {
+    next(err);
+  }
+});
 
 // @desc    Get all orders
 // @route   GET /api/orders
-router.get('/', async (req, res, next) => {
+router.get('/', authenticateUser, authorizeRoles('admin'), async (req, res, next) => {
   try {
     const orders = await Order.find().sort({ createdAt: -1 });
     res.json(orders);
@@ -16,7 +33,7 @@ router.get('/', async (req, res, next) => {
 
 // @desc    Create a new order
 // @route   POST /api/orders
-router.post('/', async (req, res, next) => {
+router.post('/', authenticateUser, authorizeRoles('customer'), async (req, res, next) => {
   try {
     const { items, customerDetails, totalPrice } = req.body;
 
@@ -56,7 +73,7 @@ router.post('/', async (req, res, next) => {
 
 // @desc    Update order status
 // @route   PUT /api/orders/:id/status
-router.put('/:id/status', async (req, res, next) => {
+router.put('/:id/status', authenticateUser, authorizeRoles('admin'), async (req, res, next) => {
   try {
     const { status } = req.body;
     
