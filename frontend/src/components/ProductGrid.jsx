@@ -2,6 +2,20 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import ProductCard from './ProductCard';
 import { RefreshCw, Inbox } from 'lucide-react';
+import { motion } from 'framer-motion';
+
+const containerVariants = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.06 } }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { 
+    opacity: 1, y: 0,
+    transition: { duration: 0.45, ease: [0.16, 1, 0.3, 1] }
+  }
+};
 
 export default function ProductGrid({ selectedCategory, searchQuery }) {
   const [products, setProducts] = useState([]);
@@ -11,19 +25,22 @@ export default function ProductGrid({ selectedCategory, searchQuery }) {
   const fetchProducts = async () => {
     setLoading(true);
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-      let url = `${apiUrl}/products`;
+      const storedUser = localStorage.getItem('userInfo');
+      const token = storedUser ? JSON.parse(storedUser).token : '';
+      const headers = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
       const params = {};
-      
       if (selectedCategory) {
         params.category_id = selectedCategory;
       }
-      
       if (searchQuery) {
         params.q = searchQuery;
       }
 
-      const res = await axios.get(url, { params });
+      const res = await axios.get('/api/products', { params, headers });
       setProducts(res.data);
       setLoading(false);
       setError(null);
@@ -40,8 +57,8 @@ export default function ProductGrid({ selectedCategory, searchQuery }) {
 
   if (loading) {
     return (
-      <div className="max-w-[1440px] mx-auto px-4 sm:px-5 lg:px-8 py-8">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+      <div className="w-full py-8">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {[...Array(8)].map((_, i) => (
             <div key={i} className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden p-4 space-y-4 animate-pulse">
               <div className="aspect-square w-full bg-slate-200 rounded-xl" />
@@ -88,12 +105,19 @@ export default function ProductGrid({ selectedCategory, searchQuery }) {
   }
 
   return (
-    <div className="max-w-[1440px] mx-auto px-4 sm:px-5 lg:px-8 py-8">
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+    <div className="w-full py-8">
+      <motion.div 
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
+      >
         {products.map((product) => (
-          <ProductCard key={product._id} product={product} />
+          <motion.div key={product._id} variants={itemVariants}>
+            <ProductCard product={product} />
+          </motion.div>
         ))}
-      </div>
+      </motion.div>
     </div>
   );
 }
