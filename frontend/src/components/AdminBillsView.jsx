@@ -1,16 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { RefreshCw, CheckCircle, Clock, XCircle, Image as ImageIcon } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 export default function AdminBillsView({ newBills }) {
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
 
   const fetchBills = async () => {
+    if (!user) return;
     setLoading(true);
     try {
-      const res = await axios.get('http://localhost:5000/api/bills');
-      setBills(res.data.data);
+      const config = { headers: { Authorization: `Bearer ${user.token}` } };
+      const res = await axios.get('/api/bills', config);
+      setBills(res.data.data || res.data); // Support both formats depending on controller wrap
     } catch (error) {
       console.error('Error fetching bills:', error);
     } finally {
@@ -20,11 +24,12 @@ export default function AdminBillsView({ newBills }) {
 
   useEffect(() => {
     fetchBills();
-  }, [newBills]); // Refetch when a new bill comes in
+  }, [newBills, user]); // Refetch when a new bill comes in or user is authenticated
 
   const updateStatus = async (id, status) => {
     try {
-      await axios.put(`http://localhost:5000/api/bills/${id}`, { status });
+      const config = { headers: { Authorization: `Bearer ${user.token}` } };
+      await axios.put(`/api/bills/${id}`, { status }, config);
       fetchBills();
     } catch (error) {
       console.error('Error updating bill status:', error);
