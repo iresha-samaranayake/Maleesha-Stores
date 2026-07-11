@@ -48,8 +48,14 @@ export default function CheckoutForm({ isOpen, onClose }) {
         totalPrice
       };
 
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-      const res = await axios.post(`${apiUrl}/orders`, orderPayload);
+      const storedUser = localStorage.getItem('userInfo');
+      const token = storedUser ? JSON.parse(storedUser).token : '';
+      const headers = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const res = await axios.post('/api/orders', orderPayload, { headers });
       
       setOrderSuccess(res.data);
       clearCart();
