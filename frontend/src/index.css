@@ -1,17 +1,134 @@
 @import "tailwindcss";
 
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 
 body {
-  font-family: 'Outfit', sans-serif;
-  @apply bg-slate-50 text-slate-800;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  @apply bg-slate-50 text-slate-800 antialiased;
 }
 
-/* Custom scrollbars for a clean category list on mobile */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: 'Outfit', sans-serif;
+}
+
+/* Glassmorphism panel */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.glass-panel-dark {
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Soft meshes & gradients */
+.bg-mesh-cream {
+  background-color: #fbfbfa;
+  background-image:
+    radial-gradient(ellipse at 80% 20%, rgba(245, 243, 239, 0.6) 0px, transparent 60%),
+    radial-gradient(ellipse at 20% 80%, rgba(209, 250, 229, 0.25) 0px, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(254, 253, 247, 0.8) 0px, transparent 100%);
+}
+
+.bg-mesh-hero {
+  background: linear-gradient(135deg, var(--emerald-900) 0%, var(--emerald-950) 40%, var(--slate-950) 100%);
+  background-image:
+    linear-gradient(135deg, var(--emerald-900) 0%, var(--emerald-950) 40%, var(--slate-950) 100%),
+    radial-gradient(ellipse at 20% 50%, rgba(16, 185, 129, 0.30) 0px, transparent 60%),
+    radial-gradient(ellipse at 80% 20%, rgba(20, 184, 166, 0.20) 0px, transparent 50%),
+    radial-gradient(ellipse at 60% 80%, rgba(56, 189, 248, 0.10) 0px, transparent 50%);
+}
+
+.bg-mesh-glow {
+  background-color: #0b1528;
+  background-image:
+    radial-gradient(at 10% 20%, rgba(16, 185, 129, 0.18) 0px, transparent 50%),
+    radial-gradient(at 90% 10%, rgba(20, 184, 166, 0.18) 0px, transparent 50%),
+    radial-gradient(at 50% 80%, rgba(14, 165, 233, 0.12) 0px, transparent 50%);
+}
+
+.bg-lifestyle-glow {
+  background-image:
+    radial-gradient(at 0% 0%, rgba(209, 250, 229, 0.6) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(224, 251, 252, 0.5) 0px, transparent 50%);
+}
+
+/* Scrollbars */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* Custom premium scrollbar for main list pages */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.3);
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.5);
+}
+
+/* Animations */
+@keyframes float {
+  0% {
+    transform: translateY(0px) rotate(0deg);
+  }
+
+  50% {
+    transform: translateY(-10px) rotate(1deg);
+  }
+
+  100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+}
+
+@keyframes pulse-slow {
+
+  0%,
+  100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.8;
+    transform: scale(1.04);
+  }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-float-slow {
+  animation: float 9s ease-in-out infinite;
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 8s ease-in-out infinite;
 }
