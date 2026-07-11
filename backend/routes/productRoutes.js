@@ -1,10 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const Product = require('../models/Product');
+const { authenticateUser, authorizeRoles } = require('../middleware/authMiddleware');
 
 // @desc    Get all products (with search and category filter)
 // @route   GET /api/products
-router.get('/', async (req, res, next) => {
+router.get('/', authenticateUser, async (req, res, next) => {
   try {
     const { category_id, q } = req.query;
     let query = {};
@@ -20,7 +21,7 @@ router.get('/', async (req, res, next) => {
     const products = await Product.find(query)
       .populate('category_id')
       .sort({ createdAt: -1 });
-      
+
     res.json(products);
   } catch (err) {
     next(err);
@@ -29,7 +30,7 @@ router.get('/', async (req, res, next) => {
 
 // @desc    Get single product
 // @route   GET /api/products/:id
-router.get('/:id', async (req, res, next) => {
+router.get('/:id', authenticateUser, async (req, res, next) => {
   try {
     const product = await Product.findById(req.params.id).populate('category_id');
     if (!product) {
@@ -43,7 +44,7 @@ router.get('/:id', async (req, res, next) => {
 
 // @desc    Create a product
 // @route   POST /api/products
-router.post('/', async (req, res, next) => {
+router.post('/', authenticateUser, authorizeRoles('admin'), async (req, res, next) => {
   try {
     const { name, price, unit, category_id, stock, image_url } = req.body;
 
@@ -67,7 +68,7 @@ router.post('/', async (req, res, next) => {
 
 // @desc    Update a product
 // @route   PUT /api/products/:id
-router.put('/:id', async (req, res, next) => {
+router.put('/:id', authenticateUser, authorizeRoles('admin'), async (req, res, next) => {
   try {
     const { name, price, unit, category_id, stock, image_url } = req.body;
 
@@ -93,7 +94,7 @@ router.put('/:id', async (req, res, next) => {
 
 // @desc    Delete a product
 // @route   DELETE /api/products/:id
-router.delete('/:id', async (req, res, next) => {
+router.delete('/:id', authenticateUser, authorizeRoles('admin'), async (req, res, next) => {
   try {
     const product = await Product.findById(req.params.id);
     if (!product) {
