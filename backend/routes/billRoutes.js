@@ -25,9 +25,11 @@ const storage = new CloudinaryStorage({
 
 const upload = multer({ storage: storage });
 
+const { authenticateUser, authorizeRoles } = require('../middleware/authMiddleware');
+
 // Routes
-router.route('/').get(getBills);
-router.route('/upload').post(upload.single('image'), uploadBill);
-router.route('/:id').put(updateBillStatus);
+router.route('/').get(authenticateUser, authorizeRoles('admin'), getBills);
+router.route('/upload').post(authenticateUser, authorizeRoles('customer'), upload.single('image'), uploadBill);
+router.route('/:id').put(authenticateUser, authorizeRoles('admin'), updateBillStatus);
 
 module.exports = router;
