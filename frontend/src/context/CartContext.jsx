@@ -65,6 +65,7 @@ export const CartProvider = ({ children }) => {
     <CartContext.Provider
       value={{
         cart,
+        cartItems: cart,
         addToCart,
         removeFromCart,
         updateQuantity,
@@ -76,4 +77,12 @@ export const CartProvider = ({ children }) => {
       {children}
     </CartContext.Provider>
   );
+};
+
+export const useCart = () => {
+  const context = React.useContext(CartContext);
+  if (!context) {
+    throw new Error('useCart must be used within a CartProvider');
+  }
+  return context;
 };
