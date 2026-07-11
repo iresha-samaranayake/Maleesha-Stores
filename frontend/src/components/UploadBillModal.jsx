@@ -41,11 +41,16 @@ export default function UploadBillModal({ isOpen, onClose }) {
     formData.append('customerPhone', customerPhone);
 
     try {
-      await axios.post('http://localhost:5000/api/bills/upload', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      const storedUser = localStorage.getItem('userInfo');
+      const token = storedUser ? JSON.parse(storedUser).token : '';
+      const headers = {
+        'Content-Type': 'multipart/form-data',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      await axios.post('/api/bills/upload', formData, { headers });
       setSuccess(true);
       setTimeout(() => {
         setSuccess(false);
