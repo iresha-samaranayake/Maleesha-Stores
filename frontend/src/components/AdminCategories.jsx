@@ -1,13 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { Plus, Trash2, X, Loader2, Layers } from 'lucide-react';
-
-const COMMON_ICONS = [
-  'Apple', 'Leaf', 'Egg', 'Croissant', 'Coffee', 'Package', 
-  'Wine', 'Soup', 'Carrot', 'CupSoda', 'IceCream', 'Fish'
-];
 
 export default function AdminCategories() {
   const { user } = useAuth();
@@ -15,10 +10,20 @@ export default function AdminCategories() {
   
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   
   const [showCategoryForm, setShowCategoryForm] = useState(false);
-  const [newCategory, setNewCategory] = useState({ name: '', icon_url: 'Package' });
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const fileInputRef = useRef(null);
+
+  const getImageUrl = (url) => {
+    if (!url) return '';
+    if (url.startsWith('http') || url.startsWith('data:')) return url;
+    return `http://localhost:5000${url}`;
+  };
 
   const fetchCategories = async () => {
     setLoading(true);
@@ -40,23 +45,65 @@ export default function AdminCategories() {
     }
   }, [user]);
 
+  const handleOpenAdd = () => {
+    setNewCategoryName('');
+    setSelectedFile(null);
+    setPreviewUrl('');
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    setShowCategoryForm(true);
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      showToast('Please select a valid image file (JPG/PNG)', 'error');
+      return;
+    }
+
+    setSelectedFile(file);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPreviewUrl(reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleAddCategory = async (e) => {
     e.preventDefault();
-    if (!newCategory.name) {
+    if (!newCategoryName) {
       showToast('Please enter category name', 'error');
       return;
     }
 
+    if (!selectedFile) {
+      showToast('Please select a category image to upload', 'error');
+      return;
+    }
+
+    setSaving(true);
     try {
-      const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const res = await axios.post('/api/categories', newCategory, config);
+      const formData = new FormData();
+      formData.append('name', newCategoryName);
+      formData.append('image', selectedFile);
+
+      const config = {
+        headers: {
+          Authorization: `Bearer ${user.token}`,
+          'Content-Type': 'multipart/form-data'
+        }
+      };
+
+      const res = await axios.post('/api/categories', formData, config);
       setCategories([...categories, res.data]);
-      setNewCategory({ name: '', icon_url: 'Package' });
       setShowCategoryForm(false);
       showToast('Category created successfully', 'success');
     } catch (err) {
       console.error('Error creating category:', err);
       showToast(err.response?.data?.message || 'Error adding category', 'error');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -92,7 +139,7 @@ export default function AdminCategories() {
           />
         </div>
         <button
-          onClick={() => setShowCategoryForm(true)}
+          onClick={handleOpenAdd}
           className="flex items-center gap-1.5 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer shadow-md shadow-emerald-500/10"
         >
           <Plus className="w-4 h-4" />
@@ -113,7 +160,7 @@ export default function AdminCategories() {
                 <tr className="bg-slate-50/50 border-b border-slate-100 text-xs font-bold text-slate-400 uppercase tracking-wider">
                   <th className="p-4 pl-6">Category Details</th>
                   <th className="p-4">Slug Identifier</th>
-                  <th className="p-4">Icon Badge</th>
+                  <th className="p-4">Image Preview</th>
                   <th className="p-4 text-center pr-6">Actions</th>
                 </tr>
               </thead>
@@ -124,8 +171,12 @@ export default function AdminCategories() {
                       
                       {/* Category details */}
                       <td className="p-4 pl-6 flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-700 font-bold flex items-center justify-center uppercase shrink-0 border border-emerald-100 text-sm">
-                          {item.name?.slice(0, 2)}
+                        <div className="w-10 h-10 rounded-lg border border-slate-200 overflow-hidden bg-slate-50 flex items-center justify-center shrink-0">
+                          {item.image_url ? (
+                            <img src={getImageUrl(item.image_url)} alt="Thumbnail" className="w-full h-full object-contain p-1" />
+                          ) : (
+                            <span className="text-xs font-bold text-slate-400">{item.name?.slice(0, 2).toUpperCase()}</span>
+                          )}
                         </div>
                         <div>
                           <p className="font-bold text-slate-800">{item.name}</p>
@@ -138,11 +189,15 @@ export default function AdminCategories() {
                         {item.slug || item.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-')}
                       </td>
                       
-                      {/* Icon */}
-                      <td className="p-4">
-                        <span className="px-2.5 py-1 bg-slate-100 border border-slate-200 rounded-full text-xs font-semibold text-slate-600">
-                          {item.icon_url || 'Package'}
-                        </span>
+                      {/* Image path */}
+                      <td className="p-4 font-mono text-xs text-slate-500">
+                        {item.image_url ? (
+                          <span className="px-2.5 py-1 bg-slate-100 border border-slate-200 rounded-full text-xs font-semibold text-slate-600 truncate max-w-[180px] inline-block">
+                            {item.image_url}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 italic">No Uploaded Image</span>
+                        )}
                       </td>
 
                       {/* Actions */}
@@ -190,24 +245,29 @@ export default function AdminCategories() {
                 <input
                   type="text"
                   required
-                  value={newCategory.name}
-                  onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
                   placeholder="e.g. Fresh Produce"
                   className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-400 uppercase">Category Icon Identifier</label>
-                <select
-                  value={newCategory.icon_url}
-                  onChange={(e) => setNewCategory({ ...newCategory, icon_url: e.target.value })}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                >
-                  {COMMON_ICONS.map((icon) => (
-                    <option key={icon} value={icon}>{icon}</option>
-                  ))}
-                </select>
+                <label className="text-xs font-bold text-slate-400 uppercase">Category Image</label>
+                <input
+                  type="file"
+                  accept="image/png, image/jpeg, image/jpg"
+                  required
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  className="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer"
+                />
+                
+                {previewUrl && (
+                  <div className="mt-3 w-32 h-32 mx-auto border border-slate-200 rounded-xl bg-slate-50 overflow-hidden flex items-center justify-center p-1.5">
+                    <img src={previewUrl} alt="Preview" className="w-full h-full object-contain" />
+                  </div>
+                )}
               </div>
 
               <div className="pt-4 flex gap-3 border-t border-slate-100 mt-5">
@@ -215,14 +275,17 @@ export default function AdminCategories() {
                   type="button"
                   onClick={() => setShowCategoryForm(false)}
                   className="flex-1 py-3 border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-semibold rounded-xl active:scale-95 transition cursor-pointer"
+                  disabled={saving}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold rounded-xl active:scale-95 transition shadow-lg shadow-emerald-500/10 cursor-pointer"
+                  disabled={saving}
                 >
-                  Add Category
+                  {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {saving ? 'Saving...' : 'Add Category'}
                 </button>
               </div>
             </form>
