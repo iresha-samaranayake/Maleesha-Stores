@@ -22,7 +22,6 @@ export default function CustomerOrders() {
 
   useEffect(() => {
     if (!user) {
-      navigate('/login');
       return;
     }
 
