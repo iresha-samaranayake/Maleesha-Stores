@@ -79,9 +79,15 @@ export default function CustomerDashboard() {
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentImageIndex((prev) => (prev + 1) % slides.length);
-    }, 4500);
+    }, 10000);
     return () => clearInterval(timer);
   }, []);
+
+  const getImageUrl = (url) => {
+    if (!url) return '';
+    if (url.startsWith('http') || url.startsWith('data:')) return url;
+    return `http://localhost:5000${url}`;
+  };
 
   // Data states
   const [categories, setCategories] = useState([]);
@@ -179,29 +185,25 @@ export default function CustomerDashboard() {
 
   return (
     <div className="flex-1 flex flex-col font-sans bg-[#fbfbfa] pb-16">
+      {/* ── Editorial Slider Hero Banner (Full-Width Edge-to-Edge) ── */}
+      <div className="relative overflow-hidden w-full min-h-[240px] sm:min-h-[300px] md:min-h-[350px] lg:min-h-[390px] shadow-sm flex bg-white">
 
-      {/* ── Full Width Container (No margins on the sides) ── */}
-      <div className="max-w-full w-full px-4 sm:px-8 lg:px-16 xl:px-24 mt-8 flex-1 flex flex-col gap-10">
-
-        {/* ── Editorial Slider Hero Banner ── */}
-        <div className="relative overflow-hidden rounded-[32px] min-h-[500px] md:min-h-[560px] lg:min-h-[600px] shadow-lg border border-slate-200/50 flex">
-          
-          <AnimatePresence mode="wait">
+          <AnimatePresence>
             <motion.div
               key={currentImageIndex}
-              initial={{ x: '100%', opacity: 0.8 }}
+              initial={{ x: '100%', opacity: 0.9 }}
               animate={{ x: 0, opacity: 1 }}
-              exit={{ x: '-100%', opacity: 0.8 }}
-              transition={{ type: 'spring', stiffness: 260, damping: 28 }}
+              exit={{ x: '-100%', opacity: 0.9 }}
+              transition={{ duration: 1.0, ease: 'easeInOut' }}
               className="absolute inset-0 p-8 sm:p-12 md:p-16 flex flex-col justify-center text-left bg-cover bg-center"
               style={{ backgroundImage: `url(${slides[currentImageIndex].image})` }}
             >
               {/* Dark overlay for readability */}
               <div className="absolute inset-0 bg-gradient-to-r from-slate-950/80 via-slate-950/35 to-transparent z-0" />
-              
+
               {/* Content panel */}
               <div className="space-y-6 text-white max-w-xl text-left z-10">
-                
+
                 {/* Badge */}
                 <div>
                   <span className="inline-flex items-center gap-1.5 px-4.5 py-1.5 rounded-full bg-white/15 border border-white/10 text-white text-[10px] font-black uppercase tracking-wider backdrop-blur-sm">
@@ -240,11 +242,10 @@ export default function CustomerDashboard() {
                           e.stopPropagation();
                           setCurrentImageIndex(idx);
                         }}
-                        className={`h-2.5 rounded-full transition-all duration-300 cursor-pointer ${
-                          currentImageIndex === idx 
-                            ? 'w-7 bg-amber-400' 
-                            : 'w-2.5 bg-white/35 hover:bg-white/50'
-                        }`}
+                        className={`h-2.5 rounded-full transition-all duration-300 cursor-pointer ${currentImageIndex === idx
+                          ? 'w-7 bg-amber-400'
+                          : 'w-2.5 bg-white/35 hover:bg-white/50'
+                          }`}
                       />
                     ))}
                   </div>
@@ -256,6 +257,8 @@ export default function CustomerDashboard() {
           </AnimatePresence>
 
         </div>
+
+        <div className="max-w-[1200px] w-full mx-auto px-4 sm:px-6 lg:px-8 mt-8 flex-1 flex flex-col gap-10">
 
         {/* ── Circular Categories Selector under Banner ── */}
         <div className="space-y-4">
@@ -271,15 +274,15 @@ export default function CustomerDashboard() {
               {/* All Departments Circle */}
               <button
                 onClick={() => { setSelectedCategory(null); }}
-                className="flex flex-col items-center gap-2.5 cursor-pointer group shrink-0"
+                className="flex flex-col items-center gap-2 cursor-pointer group shrink-0"
               >
-                <div className={`w-18 h-18 rounded-full flex items-center justify-center text-2xl border-2 transition-all duration-300 ${selectedCategory === null
-                  ? 'bg-emerald-600 border-emerald-600 text-white scale-110 shadow-md shadow-emerald-500/20'
-                  : 'bg-white border-slate-100 text-slate-500 group-hover:border-emerald-200 group-hover:scale-105 shadow-sm'
+                <div className={`w-16 h-16 rounded-[12px] flex items-center justify-center border transition-all duration-300 overflow-hidden ${selectedCategory === null
+                  ? 'bg-slate-50 border-2 border-blue-950 scale-105 shadow-md'
+                  : 'bg-white border border-blue-950/20 hover:border-blue-950/60 hover:scale-105 shadow-sm'
                   }`}>
-                  🍏
+                  <span className="text-2xl select-none">🍏</span>
                 </div>
-                <span className={`text-caption font-bold transition-colors ${selectedCategory === null ? 'text-emerald-700' : 'text-slate-600 group-hover:text-slate-800'}`}>
+                <span className={`text-[10px] sm:text-[11px] font-bold transition-colors uppercase tracking-wider ${selectedCategory === null ? 'text-slate-855' : 'text-slate-600 group-hover:text-slate-800'}`}>
                   All Items
                 </span>
               </button>
@@ -292,15 +295,23 @@ export default function CustomerDashboard() {
                   <button
                     key={cat._id}
                     onClick={() => { setSelectedCategory(cat._id); }}
-                    className="flex flex-col items-center gap-2.5 cursor-pointer group shrink-0"
+                    className="flex flex-col items-center gap-2 cursor-pointer group shrink-0"
                   >
-                    <div className={`w-18 h-18 rounded-full flex items-center justify-center text-2xl border-2 transition-all duration-300 ${isSelected
-                      ? 'bg-emerald-600 border-emerald-600 text-white scale-110 shadow-md shadow-emerald-500/20'
-                      : 'bg-white border-slate-100 text-slate-500 group-hover:border-emerald-200 group-hover:scale-105 shadow-sm'
+                    <div className={`w-16 h-16 rounded-[12px] flex items-center justify-center border transition-all duration-300 overflow-hidden ${isSelected
+                      ? 'bg-slate-50 border-2 border-blue-950 scale-105 shadow-md'
+                      : 'bg-white border border-blue-950/20 hover:border-blue-950/60 hover:scale-105 shadow-sm'
                       }`}>
-                      {details.emoji}
+                      {cat.image_url ? (
+                        <img
+                          src={cat.image_url.startsWith('http') ? cat.image_url : `http://localhost:5000${cat.image_url}`}
+                          alt={cat.name}
+                          className="w-full h-full object-contain p-1.5 rounded-[12px]"
+                        />
+                      ) : (
+                        <span className="text-2xl select-none">{details.emoji}</span>
+                      )}
                     </div>
-                    <span className={`text-caption font-bold transition-colors ${isSelected ? 'text-emerald-700' : 'text-slate-600 group-hover:text-slate-800'}`}>
+                    <span className={`text-[10px] sm:text-[11px] font-bold transition-colors uppercase tracking-wider ${isSelected ? 'text-slate-855' : 'text-slate-600 group-hover:text-slate-800'}`}>
                       {cat.name}
                     </span>
                   </button>
