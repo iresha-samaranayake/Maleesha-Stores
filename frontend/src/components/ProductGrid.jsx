@@ -11,7 +11,7 @@ const containerVariants = {
 
 const itemVariants = {
   hidden: { opacity: 0, y: 20 },
-  visible: { 
+  visible: {
     opacity: 1, y: 0,
     transition: { duration: 0.45, ease: [0.16, 1, 0.3, 1] }
   }
@@ -106,7 +106,7 @@ export default function ProductGrid({ selectedCategory, searchQuery }) {
 
   return (
     <div className="w-full py-8">
-      <motion.div 
+      <motion.div
         variants={containerVariants}
         initial="hidden"
         animate="visible"
