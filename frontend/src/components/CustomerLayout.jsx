@@ -1,22 +1,60 @@
-import React, { useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Outlet, useNavigate } from 'react-router-dom';
 import Navbar from './Navbar';
 import Footer from './Footer';
 import CartDrawer from './CartDrawer';
 import UploadBillModal from './UploadBillModal';
 import CheckoutForm from './CheckoutForm';
 import { FileImage } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
+import { useCart } from '../context/CartContext';
 
 export default function CustomerLayout() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isUploadBillOpen, setIsUploadBillOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  
+  const { user } = useAuth();
+  const { showToast } = useToast();
+  const navigate = useNavigate();
+  const { addToCart } = useCart();
+
+  useEffect(() => {
+    if (user && user.role === 'customer') {
+      const intendedActionStr = sessionStorage.getItem('intendedAction');
+      if (intendedActionStr) {
+        try {
+          const action = JSON.parse(intendedActionStr);
+          if (action.type === 'ADD_TO_CART' && action.product) {
+            addToCart(action.product);
+            showToast(`Added ${action.product.name} to cart!`, 'success');
+          } else if (action.type === 'UPLOAD_BILL') {
+            setIsUploadBillOpen(true);
+            showToast('Opening list uploader...', 'info');
+          }
+        } catch (e) {
+          console.error('Error executing intended action:', e);
+        } finally {
+          sessionStorage.removeItem('intendedAction');
+        }
+      }
+    }
+  }, [user, addToCart, showToast]);
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-50 relative">
       <Navbar
         onCartOpen={() => setIsCartOpen(true)}
-        onUploadBillOpen={() => setIsUploadBillOpen(true)}
+        onUploadBillOpen={() => {
+          if (!user) {
+            sessionStorage.setItem('intendedAction', JSON.stringify({ type: 'UPLOAD_BILL' }));
+            showToast('Please log in to upload your grocery list', 'info');
+            navigate('/login');
+          } else {
+            setIsUploadBillOpen(true);
+          }
+        }}
       />
       <main className="flex-1 flex flex-col pb-16">
         <Outlet />
@@ -25,7 +63,15 @@ export default function CustomerLayout() {
 
       {/* Floating Action Button (FAB) to Upload Grocery List Receipt */}
       <button
-        onClick={() => setIsUploadBillOpen(true)}
+        onClick={() => {
+          if (!user) {
+            sessionStorage.setItem('intendedAction', JSON.stringify({ type: 'UPLOAD_BILL' }));
+            showToast('Please log in to upload your grocery list', 'info');
+            navigate('/login');
+          } else {
+            setIsUploadBillOpen(true);
+          }
+        }}
         className="fixed bottom-6 right-6 z-40 flex items-center justify-center w-14 h-14 bg-gradient-to-tr from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white rounded-full shadow-lg shadow-emerald-600/30 hover:scale-105 active:scale-95 transition-all cursor-pointer group border border-emerald-500/20"
         title="Upload manual grocery list receipt"
       >
@@ -43,7 +89,12 @@ export default function CustomerLayout() {
         onClose={() => setIsCartOpen(false)}
         onCheckout={() => {
           setIsCartOpen(false);
-          setIsCheckoutOpen(true);
+          if (!user) {
+            showToast('Please log in or sign up to complete checkout', 'info');
+            navigate('/login');
+          } else {
+            setIsCheckoutOpen(true);
+          }
         }}
       />
       <CheckoutForm isOpen={isCheckoutOpen} onClose={() => setIsCheckoutOpen(false)} />
