@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import * as Icons from 'lucide-react';
 
-// Dynamic Lucide icon component
-const LucideIcon = ({ name, className }) => {
-  const IconComponent = Icons[name] || Icons.ShoppingBag;
-  return <IconComponent className={className} />;
+const getImageUrl = (url) => {
+  if (!url) return '';
+  if (url.startsWith('http') || url.startsWith('data:')) return url;
+  return `http://localhost:5000${url}`;
 };
 
 export default function CategoryBar({ selectedCategory, onSelectCategory }) {
@@ -39,7 +38,7 @@ export default function CategoryBar({ selectedCategory, onSelectCategory }) {
       <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar max-w-screen-2xl mx-auto px-4 sm:px-5 lg:px-6 mt-6">
         {[...Array(6)].map((_, i) => (
           <div key={i} className="flex flex-col items-center shrink-0 w-20 animate-pulse">
-            <div className="w-16 h-16 rounded-2xl bg-slate-200 shadow-sm" />
+            <div className="w-16 h-16 rounded-[12px] bg-slate-200 shadow-sm" />
             <div className="w-12 h-3 bg-slate-200 rounded mt-2" />
           </div>
         ))}
@@ -64,20 +63,20 @@ export default function CategoryBar({ selectedCategory, onSelectCategory }) {
         {/* 'All Items' category button */}
         <button
           onClick={() => onSelectCategory(null)}
-          className="flex flex-col items-center shrink-0 focus:outline-none"
+          className="flex flex-col items-center gap-2 shrink-0 focus:outline-none group"
         >
           <div
-            className={`w-16 h-16 rounded-2xl flex items-center justify-center border transition shadow-sm ${
+            className={`w-16 h-16 rounded-[12px] flex items-center justify-center border transition-all duration-300 overflow-hidden ${
               selectedCategory === null
-                ? 'bg-emerald-600 border-emerald-600 text-white shadow-emerald-100 scale-105'
-                : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                ? 'bg-slate-50 border-2 border-blue-950 scale-105 shadow-md'
+                : 'bg-white border border-blue-950/20 hover:border-blue-950/60 hover:scale-105 shadow-sm'
             }`}
           >
-            <Icons.LayoutGrid className="w-7 h-7" />
+            <span className="text-2xl select-none">🍏</span>
           </div>
           <span
-            className={`text-xs mt-2 font-medium transition ${
-              selectedCategory === null ? 'text-emerald-700 font-semibold' : 'text-slate-600'
+            className={`text-[10px] sm:text-[11px] font-bold transition-colors uppercase tracking-wider ${
+              selectedCategory === null ? 'text-slate-855' : 'text-slate-600 group-hover:text-slate-800'
             }`}
           >
             All Items
@@ -85,30 +84,41 @@ export default function CategoryBar({ selectedCategory, onSelectCategory }) {
         </button>
 
         {/* Dynamic categories fetched from server */}
-        {categories.map((cat) => (
-          <button
-            key={cat._id}
-            onClick={() => onSelectCategory(cat._id)}
-            className="flex flex-col items-center shrink-0 focus:outline-none"
-          >
-            <div
-              className={`w-16 h-16 rounded-2xl flex items-center justify-center border transition shadow-sm ${
-                selectedCategory === cat._id
-                  ? 'bg-emerald-600 border-emerald-600 text-white shadow-emerald-100 scale-105'
-                  : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
-              }`}
+        {categories.map((cat) => {
+          const isSelected = selectedCategory === cat._id;
+          return (
+            <button
+              key={cat._id}
+              onClick={() => onSelectCategory(cat._id)}
+              className="flex flex-col items-center gap-2 shrink-0 focus:outline-none group"
             >
-              <LucideIcon name={cat.icon_url} className="w-7 h-7" />
-            </div>
-            <span
-              className={`text-xs mt-2 font-medium max-w-[80px] text-center truncate transition ${
-                selectedCategory === cat._id ? 'text-emerald-700 font-semibold' : 'text-slate-600'
-              }`}
-            >
-              {cat.name}
-            </span>
-          </button>
-        ))}
+              <div
+                className={`w-16 h-16 rounded-[12px] flex items-center justify-center border transition-all duration-300 overflow-hidden ${
+                  isSelected
+                    ? 'bg-slate-50 border-2 border-blue-950 scale-105 shadow-md'
+                    : 'bg-white border border-blue-950/20 hover:border-blue-950/60 hover:scale-105 shadow-sm'
+                }`}
+              >
+                {cat.image_url ? (
+                  <img
+                    src={getImageUrl(cat.image_url)}
+                    alt={cat.name}
+                    className="w-full h-full object-contain p-1.5 rounded-[12px]"
+                  />
+                ) : (
+                  <span className="text-2xl select-none">📦</span>
+                )}
+              </div>
+              <span
+                className={`text-[10px] sm:text-[11px] font-bold transition-colors uppercase tracking-wider ${
+                  isSelected ? 'text-slate-855' : 'text-slate-600 group-hover:text-slate-800'
+                }`}
+              >
+                {cat.name}
+              </span>
+            </button>
+          );
+        })}
       </div>
     </div>
   );
