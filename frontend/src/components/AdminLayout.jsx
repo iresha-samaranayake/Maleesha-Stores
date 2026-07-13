@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import {
   LayoutDashboard, Package, ShoppingBag, Users, Layers,
-  BarChart3, LogOut, Menu, X, Bell
+  BarChart3, LogOut, Menu, X, Bell, Image
 } from 'lucide-react';
 
 export default function AdminLayout() {
@@ -15,9 +15,7 @@ export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleLogout = () => {
-    logout();
-    showToast('Logged out successfully', 'success');
-    navigate('/login');
+    navigate('/?logout=true');
   };
 
   const navItems = [
@@ -26,6 +24,7 @@ export default function AdminLayout() {
     { label: 'Orders', path: '/admin/orders', icon: ShoppingBag },
     { label: 'Customers', path: '/admin/users', icon: Users },
     { label: 'Categories', path: '/admin/categories', icon: Layers },
+    { label: 'Banners', path: '/admin/banners', icon: Image },
     { label: 'Reports', path: '/admin/reports', icon: BarChart3 },
   ];
 
