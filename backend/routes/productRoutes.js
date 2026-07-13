@@ -5,7 +5,7 @@ const { authenticateUser, authorizeRoles } = require('../middleware/authMiddlewa
 
 // @desc    Get all products (with search and category filter)
 // @route   GET /api/products
-router.get('/', authenticateUser, async (req, res, next) => {
+router.get('/', async (req, res, next) => {
   try {
     const { category_id, q } = req.query;
     let query = {};
@@ -30,7 +30,7 @@ router.get('/', authenticateUser, async (req, res, next) => {
 
 // @desc    Get single product
 // @route   GET /api/products/:id
-router.get('/:id', authenticateUser, async (req, res, next) => {
+router.get('/:id', async (req, res, next) => {
   try {
     const product = await Product.findById(req.params.id).populate('category_id');
     if (!product) {
@@ -46,7 +46,7 @@ router.get('/:id', authenticateUser, async (req, res, next) => {
 // @route   POST /api/products
 router.post('/', authenticateUser, authorizeRoles('admin'), async (req, res, next) => {
   try {
-    const { name, price, unit, category_id, stock, image_url } = req.body;
+    const { name, price, unit, category_id, stock, image_url, discountPercentage } = req.body;
 
     const product = new Product({
       name,
@@ -54,7 +54,8 @@ router.post('/', authenticateUser, authorizeRoles('admin'), async (req, res, nex
       unit,
       category_id,
       stock,
-      image_url
+      image_url,
+      discountPercentage: discountPercentage !== undefined ? Number(discountPercentage) : 0
     });
 
     const savedProduct = await product.save();
@@ -70,7 +71,7 @@ router.post('/', authenticateUser, authorizeRoles('admin'), async (req, res, nex
 // @route   PUT /api/products/:id
 router.put('/:id', authenticateUser, authorizeRoles('admin'), async (req, res, next) => {
   try {
-    const { name, price, unit, category_id, stock, image_url } = req.body;
+    const { name, price, unit, category_id, stock, image_url, discountPercentage } = req.body;
 
     const product = await Product.findById(req.params.id);
     if (!product) {
@@ -83,6 +84,9 @@ router.put('/:id', authenticateUser, authorizeRoles('admin'), async (req, res, n
     if (category_id) product.category_id = category_id;
     if (stock !== undefined) product.stock = stock;
     if (image_url !== undefined) product.image_url = image_url;
+    if (discountPercentage !== undefined) {
+      product.discountPercentage = Number(discountPercentage);
+    }
 
     const updatedProduct = await product.save();
     const populatedProduct = await Product.findById(updatedProduct._id).populate('category_id');
