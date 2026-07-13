@@ -21,7 +21,8 @@ export default function AdminProducts() {
     unit: 'kg',
     category_id: '',
     stock: '',
-    image_url: ''
+    image_url: '',
+    discountPercentage: 0
   });
 
   // Search/Filter States
@@ -59,7 +60,8 @@ export default function AdminProducts() {
       unit: 'kg',
       category_id: categories[0]?._id || '',
       stock: '',
-      image_url: ''
+      image_url: '',
+      discountPercentage: 0
     });
     setShowProductForm(true);
   };
@@ -72,7 +74,8 @@ export default function AdminProducts() {
       unit: prod.unit,
       category_id: prod.category_id?._id || prod.category_id || '',
       stock: prod.stock,
-      image_url: prod.image_url || ''
+      image_url: prod.image_url || '',
+      discountPercentage: prod.discountPercentage || 0
     });
     setShowProductForm(true);
   };
@@ -98,7 +101,6 @@ export default function AdminProducts() {
         showToast('Product created successfully', 'success');
       }
       setShowProductForm(false);
-      setEditingProduct(null);
     } catch (err) {
       console.error('Error saving product:', err);
       showToast(err.response?.data?.message || 'Error saving product', 'error');
@@ -111,25 +113,26 @@ export default function AdminProducts() {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
       await axios.delete(`/api/products/${id}`, config);
       setProducts(products.filter(p => p._id !== id));
-      showToast('Product removed', 'info');
+      showToast('Product deleted from inventory', 'info');
     } catch (err) {
       console.error('Error deleting product:', err);
-      showToast(err.response?.data?.message || 'Error deleting product', 'error');
+      showToast('Error removing product', 'error');
     }
   };
 
-  const filteredProducts = products.filter(p => 
-    p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.category_id?.name?.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredProducts = products.filter(p =>
+    p.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
-    <div className="space-y-6 font-sans">
+    <div className="space-y-6 font-sans animate-in fade-in duration-300">
+      
+      {/* Search & Actions */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-2xl border border-slate-200/60 shadow-sm">
         <div className="flex-1 w-full relative">
           <input
             type="text"
-            placeholder="🔍 Search products by name or category..."
+            placeholder="🔍 Search items by name..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full px-4 py-2.5 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 text-sm bg-white"
@@ -147,7 +150,7 @@ export default function AdminProducts() {
       {loading ? (
         <div className="flex flex-col items-center justify-center py-20 text-slate-400 gap-3">
           <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
-          <span className="text-sm font-medium">Fetching product inventory...</span>
+          <span className="text-sm font-medium">Fetching inventory list...</span>
         </div>
       ) : (
         <div className="bg-white border border-slate-200/60 rounded-3xl overflow-hidden shadow-sm">
@@ -158,7 +161,8 @@ export default function AdminProducts() {
                   <th className="p-4 pl-6">Product Details</th>
                   <th className="p-4">Category</th>
                   <th className="p-4">Price</th>
-                  <th className="p-4">Stock Level</th>
+                  <th className="p-4">Discount</th>
+                  <th className="p-4">Stock</th>
                   <th className="p-4 text-center pr-6">Actions</th>
                 </tr>
               </thead>
@@ -166,22 +170,41 @@ export default function AdminProducts() {
                 {filteredProducts.length > 0 ? (
                   filteredProducts.map((prod) => (
                     <tr key={prod._id} className="hover:bg-slate-50/30 transition">
-                      <td className="p-4 pl-6 flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-700 font-bold flex items-center justify-center uppercase shrink-0 border border-emerald-100">
-                          {prod.name?.slice(0, 2)}
-                        </div>
-                        <div>
-                          <p className="font-bold text-slate-800">{prod.name}</p>
-                          <p className="text-xs text-slate-400 mt-0.5">{prod.unit || 'kg'}</p>
+                      <td className="p-4 pl-6">
+                        <div className="flex items-center gap-3">
+                          {prod.image_url ? (
+                            <img
+                              src={prod.image_url.startsWith('http') ? prod.image_url : `http://localhost:5000${prod.image_url}`}
+                              alt={prod.name}
+                              className="w-10 h-10 object-contain rounded-lg border border-slate-100 shrink-0 bg-slate-50 p-0.5"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-400 shrink-0">
+                              {prod.name?.slice(0, 2).toUpperCase()}
+                            </div>
+                          )}
+                          <div>
+                            <p className="font-bold text-slate-800">{prod.name}</p>
+                            <p className="text-[10px] text-slate-400 mt-0.5">Unit: {prod.unit}</p>
+                          </div>
                         </div>
                       </td>
                       <td className="p-4">
-                        <span className="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-full text-xs font-semibold">
+                        <span className="px-2.5 py-0.5 bg-slate-100 border border-slate-200 rounded-full text-[11px] font-semibold text-slate-650">
                           {prod.category_id?.name || 'Uncategorized'}
                         </span>
                       </td>
                       <td className="p-4 font-bold text-slate-900">
                         Rs. {prod.price}
+                      </td>
+                      <td className="p-4">
+                        {prod.discountPercentage > 0 ? (
+                          <span className="px-2 py-0.5 bg-red-50 border border-red-200 text-red-600 rounded-full text-xs font-bold">
+                            {prod.discountPercentage}% OFF
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 text-xs">-</span>
+                        )}
                       </td>
                       <td className="p-4">
                         <div className="flex items-center gap-2">
@@ -209,7 +232,7 @@ export default function AdminProducts() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="5" className="p-10 text-center text-slate-400 font-medium">
+                    <td colSpan="6" className="p-10 text-center text-slate-400 font-medium">
                       <Package className="w-12 h-12 text-slate-200 mx-auto mb-3" />
                       No products match your search.
                     </td>
@@ -280,7 +303,7 @@ export default function AdminProducts() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-400 uppercase">Category</label>
                   <select
@@ -307,6 +330,18 @@ export default function AdminProducts() {
                     className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-400 uppercase">Discount (%)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={newProduct.discountPercentage}
+                    onChange={(e) => setNewProduct({ ...newProduct, discountPercentage: e.target.value })}
+                    placeholder="0"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
               </div>
 
               <div className="space-y-1">
@@ -315,7 +350,7 @@ export default function AdminProducts() {
                   type="text"
                   value={newProduct.image_url}
                   onChange={(e) => setNewProduct({ ...newProduct, image_url: e.target.value })}
-                  placeholder="https://example.com/image.jpg"
+                  placeholder="e.g. /uploads/products/apples.png"
                   className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
@@ -332,7 +367,7 @@ export default function AdminProducts() {
                   type="submit"
                   className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold rounded-xl active:scale-95 transition shadow-lg shadow-emerald-500/10 cursor-pointer"
                 >
-                  Save Product
+                  {editingProduct ? 'Save Changes' : 'Create Product'}
                 </button>
               </div>
             </form>
