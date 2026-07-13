@@ -12,9 +12,12 @@ import AdminLayout from './components/AdminLayout';
 // Protectors
 import { ProtectedRoute, RoleProtectedRoute } from './components/ProtectedRoute';
 
-// Auth Pages
+// Guest/Auth Pages
 import Login from './components/Login';
 import Register from './components/Register';
+
+// Public Homepage
+import Homepage from './components/Homepage';
 
 // Customer Pages
 import CustomerDashboard from './components/CustomerDashboard';
@@ -29,6 +32,7 @@ import AdminProducts from './components/AdminProducts';
 import AdminOrders from './components/AdminOrders';
 import AdminUsers from './components/AdminUsers';
 import AdminCategories from './components/AdminCategories';
+import AdminBanners from './components/AdminBanners';
 import AdminReports from './components/AdminReports';
 
 // Home Redirect Component
@@ -57,8 +61,10 @@ function HomeRedirect() {
 function MainAppContent() {
   return (
     <Routes>
-      {/* Home Redirect */}
-      <Route path="/" element={<HomeRedirect />} />
+      {/* Public routes wrapped in CustomerLayout */}
+      <Route element={<CustomerLayout />}>
+        <Route path="/" element={<Homepage />} />
+      </Route>
 
       {/* Guest/Auth routes wrapped in AuthLayout */}
       <Route element={<AuthLayout />}>
@@ -86,6 +92,7 @@ function MainAppContent() {
           <Route path="/admin/orders" element={<AdminOrders />} />
           <Route path="/admin/users" element={<AdminUsers />} />
           <Route path="/admin/categories" element={<AdminCategories />} />
+          <Route path="/admin/banners" element={<AdminBanners />} />
           <Route path="/admin/reports" element={<AdminReports />} />
           <Route path="/admin/profile" element={<ProfileSettings />} />
         </Route>
