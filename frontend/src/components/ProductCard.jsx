@@ -1,12 +1,16 @@
 import React, { useContext, useState, useEffect } from 'react';
-import { Plus, Minus, ShoppingCart, Heart, Star, Flame, Clock } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Plus, Minus, Heart } from 'lucide-react';
 import { CartContext } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '../context/AuthContext';
+import { motion } from 'framer-motion';
 
 export default function ProductCard({ product }) {
   const { cart, addToCart, updateQuantity } = useContext(CartContext);
   const { showToast } = useToast();
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
   const cartItem = cart.find(item => item.product_id === product._id);
   const quantityInCart = cartItem ? cartItem.quantity : 0;
@@ -16,6 +20,12 @@ export default function ProductCard({ product }) {
 
   // Local Wishlist State
   const [isFavorite, setIsFavorite] = useState(false);
+
+  const getImageUrl = (url) => {
+    if (!url) return '';
+    if (url.startsWith('http') || url.startsWith('data:')) return url;
+    return `http://localhost:5000${url}`;
+  };
 
   useEffect(() => {
     const savedWishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
@@ -47,151 +57,148 @@ export default function ProductCard({ product }) {
     updateQuantity(product._id, quantityInCart - 1);
   };
 
-  // Mock pricing calculations for premium design (original price + discount %)
-  const discountPercent = product.price > 500 ? 15 : product.price > 150 ? 10 : 8;
-  const originalPrice = Math.round(product.price * (1 + discountPercent / 100));
+  const handleAddToCart = () => {
+    if (!user) {
+      sessionStorage.setItem('intendedAction', JSON.stringify({ type: 'ADD_TO_CART', product }));
+      showToast('Please log in to add items to your cart', 'info');
+      navigate('/login');
+      return;
+    }
+    addToCart(product);
+    showToast(`Added ${product.name} to cart`, 'success');
+  };
+
+  const hasDiscount = product.discountPercentage > 0;
+  const discountedPrice = hasDiscount
+    ? Math.round(product.price * (1 - product.discountPercentage / 100))
+    : product.price;
 
   return (
     <motion.div
-      whileHover={{ y: -8, boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.05), 0 8px 10px -6px rgb(0 0 0 / 0.05)' }}
+      whileHover={{ y: -6, boxShadow: '0 15px 20px -5px rgb(0 0 0 / 0.05), 0 5px 8px -6px rgb(0 0 0 / 0.05)' }}
       transition={{ type: 'spring', stiffness: 300, damping: 24 }}
-      className="bg-white rounded-[24px] border border-slate-100/80 shadow-sm overflow-hidden flex flex-col justify-between group relative select-none"
+      className="bg-white rounded-[20px] border border-slate-200/60 shadow-sm overflow-hidden flex flex-col justify-between group relative select-none w-full max-w-[210px] mx-auto"
     >
+      
+      {/* Dynamic Discount Badge (Circular Red Badge in Top Left) */}
+      {hasDiscount && (
+        <div className="absolute top-2.5 left-2.5 z-20 w-10 h-10 rounded-full bg-red-655 text-white font-black text-[9px] uppercase tracking-wider flex flex-col items-center justify-center text-center shadow-md border border-white leading-none">
+          <span>{product.discountPercentage}%</span>
+          <span className="text-[6.5px] mt-0.5">OFF</span>
+        </div>
+      )}
 
+      {/* Image Block: Centered inside a circular border/ring with a white background and gradient outer ring */}
+      <div className="relative pt-5 flex justify-center shrink-0">
+        <div className="w-24 h-24 sm:w-26 sm:h-26 rounded-full p-[2.5px] bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center overflow-hidden shadow-sm relative z-10 group-hover:scale-105 transition-transform duration-550">
+          <div className="w-full h-full rounded-full bg-white flex items-center justify-center overflow-hidden">
+            {product.image_url ? (
+              <img
+                src={getImageUrl(product.image_url)}
+                alt={product.name}
+                className="w-full h-full object-contain p-2"
+                loading="lazy"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-slate-355 bg-slate-50 font-black text-xs uppercase select-none">
+                {product.name?.slice(0, 3)}
+              </div>
+            )}
+          </div>
+        </div>
 
-
-      {/* Heart / Wishlist Trigger */}
-      <button
-        onClick={toggleWishlist}
-        className="absolute top-3 right-3 z-10 p-2 rounded-xl bg-white/80 hover:bg-white text-slate-400 hover:text-red-500 shadow-sm backdrop-blur-sm transition-all cursor-pointer hover:scale-110 active:scale-95"
-      >
-        <Heart className={`w-4 h-4 transition-colors ${isFavorite ? 'fill-red-500 text-red-500' : 'text-slate-400'}`} />
-      </button>
-
-      {/* Image Block */}
-      <div className="relative aspect-[16/15] bg-slate-50/50 overflow-hidden border-b border-slate-100/50 shrink-0">
-        {product.image_url ? (
-          <img
-            src={product.image_url}
-            alt={product.name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
-            loading="lazy"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-slate-300 bg-slate-100/50 font-bold text-xs uppercase tracking-widest">
-            {product.name?.slice(0, 3)}
+        {/* Floating Stock Overlay alert */}
+        {(isOutOfStock || isLowStock) && (
+          <div className="absolute bottom-0 z-20">
+            {isOutOfStock ? (
+              <span className="bg-rose-500 text-white text-[8px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider shadow-sm">
+                Out of Stock
+              </span>
+            ) : (
+              <span className="bg-amber-500 text-white text-[8px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider shadow-sm">
+                Only {product.stock} Left
+              </span>
+            )}
           </div>
         )}
-
-        {/* Floating Stock Overlay alerts */}
-        <div className="absolute bottom-2.5 left-2.5 right-2.5 z-10 flex flex-wrap gap-1">
-          {isOutOfStock ? (
-            <span className="bg-rose-500/90 backdrop-blur-sm text-white text-[9px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider">
-              Out of Stock
-            </span>
-          ) : isLowStock ? (
-            <span className="bg-amber-500/95 backdrop-blur-sm text-white text-[9px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider">
-              Only {product.stock} Left!
-            </span>
-          ) : (
-            <span className="bg-slate-900/80 backdrop-blur-sm text-white text-[9px] font-bold px-2.5 py-0.5 rounded-md flex items-center gap-1">
-              <Clock className="w-2.5 h-2.5 text-emerald-400" />
-              15 mins
-            </span>
-          )}
-        </div>
       </div>
 
       {/* Details Section */}
-      <div className="p-4 flex-1 flex flex-col justify-between gap-3">
-        <div className="space-y-1.5">
-          {/* Category Tag & Ratings bar */}
-          <div className="flex items-center justify-between">
-            <span className="text-[9px] font-extrabold text-emerald-600 bg-emerald-50 border border-emerald-100/60 px-2 py-0.5 rounded-md uppercase tracking-widest">
-              {product.category_id?.name || 'Fresh'}
-            </span>
-            <div className="flex items-center gap-0.5 text-amber-400">
-              <Star className="w-3 h-3 fill-amber-400" />
-              <span className="text-[10px] font-bold text-slate-700">4.8</span>
-            </div>
-          </div>
-
+      <div className="p-3 pb-2.5 flex-1 flex flex-col justify-between gap-2 text-center">
+        <div className="space-y-0.5">
           {/* Product Name */}
-          <h3 className="font-extrabold text-sm text-slate-800 leading-tight group-hover:text-emerald-700 transition-colors">
+          <h3 className="font-bold text-xs sm:text-sm text-slate-800 leading-tight group-hover:text-emerald-700 transition-colors line-clamp-2 h-8 flex items-center justify-center">
             {product.name}
           </h3>
 
           {/* Quantity Unit Description */}
-          <p className="text-xs text-slate-400 font-semibold">
+          <p className="text-[11px] text-slate-400 font-bold">
             {product.unit || 'per unit'}
           </p>
-
-          {/* Stock bar indicator */}
-          {isLowStock && (
-            <div className="space-y-1 pt-0.5">
-              <div className="w-full h-1 bg-slate-100 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-amber-500 rounded-full"
-                  style={{ width: `${(product.stock / 5) * 100}%` }}
-                />
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* Pricing & CTA Controls */}
-        <div className="flex items-center justify-between mt-auto pt-2 border-t border-slate-100/50">
-
-          {/* Price Tags */}
-          <div className="flex flex-col">
-            <span className="text-emerald-800 font-black text-base tracking-tight leading-none">
-              Rs. {product.price.toLocaleString()}
+        {/* Pricing & Wishlist Trigger */}
+        <div className="flex flex-col items-center justify-center relative py-0.5 mt-auto min-h-[38px]">
+          <div className="flex flex-col items-center justify-center">
+            <span className="text-emerald-800 font-black text-sm tracking-tight leading-none">
+              Rs. {discountedPrice.toLocaleString()}
             </span>
-          </div>
-
-          {/* Cart triggers */}
-          <div className="shrink-0">
-            {isOutOfStock ? (
-              <button
-                disabled
-                className="bg-slate-50 text-slate-300 p-2.5 rounded-xl border border-slate-100 cursor-not-allowed"
-              >
-                <ShoppingCart className="w-4 h-4" />
-              </button>
-            ) : quantityInCart > 0 ? (
-              <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200/60 p-0.5 rounded-xl shadow-inner">
-                <button
-                  onClick={handleDecrement}
-                  className="w-7 h-7 rounded-lg flex items-center justify-center bg-white text-slate-600 hover:text-emerald-700 hover:bg-emerald-50 transition active:scale-95 shadow-sm font-bold cursor-pointer"
-                >
-                  <Minus className="w-3.5 h-3.5" />
-                </button>
-                <span className="text-slate-800 font-black text-xs px-1.5 min-w-[14px] text-center">
-                  {quantityInCart}
-                </span>
-                <button
-                  onClick={handleIncrement}
-                  disabled={quantityInCart >= product.stock}
-                  className={`w-7 h-7 rounded-lg flex items-center justify-center bg-white text-slate-600 hover:text-emerald-700 hover:bg-emerald-50 transition active:scale-95 shadow-sm font-bold cursor-pointer ${quantityInCart >= product.stock ? 'opacity-30 cursor-not-allowed' : ''
-                    }`}
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => addToCart(product)}
-                className="w-9 h-9 flex items-center justify-center bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl shadow-md shadow-emerald-600/10 active:scale-95 transition-all cursor-pointer"
-              >
-                <Plus className="w-5 h-5" />
-              </button>
+            {hasDiscount && (
+              <span className="text-slate-455 font-bold text-[10px] line-through leading-none mt-0.5">
+                Rs. {product.price.toLocaleString()}
+              </span>
             )}
           </div>
 
+          {/* Heart / Wishlist Icon positioned to the bottom right of pricing text block */}
+          <button
+            onClick={toggleWishlist}
+            className="absolute right-0.5 bottom-0 text-slate-400 hover:text-red-500 transition-all cursor-pointer hover:scale-110 active:scale-95 p-1"
+          >
+            <Heart className={`w-3.5 h-3.5 transition-colors ${isFavorite ? 'fill-red-500 text-red-500' : 'text-slate-400'}`} />
+          </button>
         </div>
-
       </div>
 
+      {/* Full-width Add to Cart Button attached flush to bottom edge */}
+      <div className="w-full shrink-0">
+        {isOutOfStock ? (
+          <button
+            disabled
+            className="w-full py-2.5 bg-slate-100 text-slate-400 text-[10px] font-black uppercase tracking-wider rounded-b-[20px] cursor-not-allowed"
+          >
+            OUT OF STOCK
+          </button>
+        ) : quantityInCart > 0 ? (
+          <div className="w-full flex items-center justify-between bg-blue-955 px-2.5 py-1 rounded-b-[20px]">
+            <button
+              onClick={handleDecrement}
+              className="w-6 h-6 rounded-md flex items-center justify-center bg-blue-900/60 hover:bg-blue-900 text-white font-bold transition active:scale-95 cursor-pointer"
+            >
+              <Minus className="w-3 h-3" />
+            </button>
+            <span className="text-white font-black text-[11px]">
+              {quantityInCart}
+            </span>
+            <button
+              onClick={handleIncrement}
+              disabled={quantityInCart >= product.stock}
+              className={`w-6 h-6 rounded-md flex items-center justify-center bg-blue-900/60 hover:bg-blue-900 text-white font-bold transition active:scale-95 cursor-pointer ${
+                quantityInCart >= product.stock ? 'opacity-30 cursor-not-allowed' : ''
+              }`}
+            >
+              <Plus className="w-3 h-3" />
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={handleAddToCart}
+            className="w-full py-2.5 bg-blue-950 hover:bg-blue-900 text-white text-[10px] font-black uppercase tracking-wider rounded-b-[20px] active:scale-[0.99] transition-all cursor-pointer"
+          >
+            ADD TO CART
+          </button>
+        )}
+      </div>
     </motion.div>
   );
 }
