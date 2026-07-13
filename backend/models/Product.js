@@ -27,6 +27,12 @@ const ProductSchema = new mongoose.Schema({
     min: [0, 'Stock cannot be negative'],
     default: 0
   },
+  discountPercentage: {
+    type: Number,
+    min: [0, 'Discount percentage cannot be negative'],
+    max: [100, 'Discount percentage cannot exceed 100%'],
+    default: 0
+  },
   image_url: {
     type: String,
     default: ''
