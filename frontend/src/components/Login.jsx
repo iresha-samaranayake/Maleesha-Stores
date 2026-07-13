@@ -20,7 +20,12 @@ export default function Login() {
 
   useEffect(() => {
     if (!loading && user) {
-      navigate(user.role === 'admin' ? '/admin/dashboard' : '/customer/dashboard', { replace: true });
+      const intendedAction = sessionStorage.getItem('intendedAction');
+      if (intendedAction) {
+        navigate('/', { replace: true });
+      } else {
+        navigate(user.role === 'admin' ? '/admin/dashboard' : '/customer/dashboard', { replace: true });
+      }
     }
   }, [user, loading, navigate]);
 
