@@ -23,7 +23,6 @@ export default function ProfileSettings() {
   const [activeTab, setActiveTab] = useState('personal');
 
   if (!user) {
-    navigate('/login');
     return null;
   }
 
@@ -49,8 +48,7 @@ export default function ProfileSettings() {
   };
 
   const handleLogout = () => {
-    logout();
-    navigate('/login');
+    navigate('/?logout=true');
   };
 
   return (
