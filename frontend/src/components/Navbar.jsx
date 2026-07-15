@@ -14,7 +14,7 @@ export default function Navbar({ onCartOpen }) {
   const { showToast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   // Navigation states
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [categories, setCategories] = useState([]);
@@ -22,7 +22,7 @@ export default function Navbar({ onCartOpen }) {
   const [deliveryLocation, setDeliveryLocation] = useState(() => {
     return localStorage.getItem('maleesha_delivery_loc') || 'Colombo';
   });
-  
+
   const dropdownRef = useRef(null);
   const searchParams = new URLSearchParams(location.search);
   const [searchVal, setSearchVal] = useState(searchParams.get('q') || '');
@@ -39,11 +39,10 @@ export default function Navbar({ onCartOpen }) {
     if (params.get('logout') === 'true') {
       if (user) {
         logout();
-        showToast('Logged out successfully', 'success');
       }
       navigate('/', { replace: true });
     }
-  }, [location.search, user, logout, navigate, showToast]);
+  }, [location.search, user, logout, navigate]);
 
   // Fetch categories for dropdown and secondary header links
   useEffect(() => {
@@ -109,7 +108,7 @@ export default function Navbar({ onCartOpen }) {
     if (onCartOpen) {
       onCartOpen();
     } else {
-      navigate(user ? '/customer/cart' : '/login');
+      navigate('/customer/cart');
     }
   };
 
@@ -119,11 +118,11 @@ export default function Navbar({ onCartOpen }) {
 
   return (
     <div className="flex flex-col w-full sticky top-0 z-40 bg-white shrink-0">
-      
+
       {/* ── Main Row: Logo, Search, Profile, Cart ── */}
       <div className="bg-[#023e2b] text-white w-full border-b border-emerald-950/20">
         <div className="max-w-full w-full px-4 sm:px-8 lg:px-16 xl:px-24 py-3.5 flex items-center justify-between gap-6">
-          
+
           {/* Left Side: Logo & Search Bar */}
           <div className="flex items-center gap-6 md:gap-8 flex-1">
             {/* Logo */}
@@ -170,9 +169,9 @@ export default function Navbar({ onCartOpen }) {
 
           {/* User Profile & Cart Drawer */}
           <div className="flex items-center gap-3 shrink-0">
-            
+
             {/* Cart triggers */}
-            {!isAdmin && user && (
+            {!isAdmin && (
               <button
                 onClick={handleCartClick}
                 className="relative flex items-center justify-center gap-2 px-4 py-2 bg-emerald-800/40 hover:bg-emerald-800/70 border border-emerald-700/30 text-white rounded-xl text-xs font-bold transition cursor-pointer"
@@ -213,7 +212,7 @@ export default function Navbar({ onCartOpen }) {
                   <div className="w-9 h-9 rounded-full bg-[#ffcc00] text-slate-900 font-extrabold flex items-center justify-center text-sm border border-yellow-450/40 cursor-pointer shadow-sm">
                     {user.name?.charAt(0).toUpperCase()}
                   </div>
-                  
+
                   {/* Profile dropdown submenu */}
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl border border-slate-100 shadow-xl py-2 z-50 invisible group-hover:visible hover:visible transition-all duration-200 origin-top-right">
                     {isCustomer ? (
@@ -261,7 +260,7 @@ export default function Navbar({ onCartOpen }) {
         <div className="bg-[#f8f9fa] border-b border-slate-200 py-1.5 hidden md:block shadow-sm">
           <div className="max-w-full w-full px-4 sm:px-8 lg:px-16 xl:px-24 flex items-center justify-between">
             <div className="flex items-center gap-6">
-              
+
               {/* Yellow Categories Trigger */}
               <div className="relative" ref={dropdownRef}>
                 <button
@@ -290,11 +289,11 @@ export default function Navbar({ onCartOpen }) {
                       >
                         <span className="text-sm">
                           {cat.name.toLowerCase().includes('fruit') ? '🍎' :
-                           cat.name.toLowerCase().includes('vegetable') ? '🥬' :
-                           cat.name.toLowerCase().includes('dairy') ? '🥛' :
-                           cat.name.toLowerCase().includes('bakery') ? '🍞' :
-                           cat.name.toLowerCase().includes('beverage') ? '🧃' :
-                           cat.name.toLowerCase().includes('pantry') ? '🥫' : '📁'}
+                            cat.name.toLowerCase().includes('vegetable') ? '🥬' :
+                              cat.name.toLowerCase().includes('dairy') ? '🥛' :
+                                cat.name.toLowerCase().includes('bakery') ? '🍞' :
+                                  cat.name.toLowerCase().includes('beverage') ? '🧃' :
+                                    cat.name.toLowerCase().includes('pantry') ? '🥫' : '📁'}
                         </span>
                         {cat.name}
                       </button>
@@ -311,9 +310,8 @@ export default function Navbar({ onCartOpen }) {
                     <button
                       key={cat._id}
                       onClick={() => handleCategorySelect(cat._id)}
-                      className={`text-xs font-extrabold transition-colors cursor-pointer hover:text-[#023e2b] ${
-                        isActive ? 'text-[#023e2b] border-b-2 border-[#023e2b] pb-0.5' : 'text-slate-650 hover:text-slate-900'
-                      }`}
+                      className={`text-xs font-extrabold transition-colors cursor-pointer hover:text-[#023e2b] ${isActive ? 'text-[#023e2b] border-b-2 border-[#023e2b] pb-0.5' : 'text-slate-650 hover:text-slate-900'
+                        }`}
                     >
                       {cat.name}
                     </button>
@@ -335,7 +333,7 @@ export default function Navbar({ onCartOpen }) {
       {/* Mobile Drawer Menu Panel */}
       {mobileMenuOpen && (
         <div className="md:hidden bg-white border-b border-slate-100 px-4 py-5 space-y-4 shadow-inner flex flex-col">
-          
+
           {/* Mobile Search input */}
           {!isAdmin && (
             <form onSubmit={handleSearchSubmit} className="relative">

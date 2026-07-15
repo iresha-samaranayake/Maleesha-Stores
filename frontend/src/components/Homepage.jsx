@@ -7,6 +7,7 @@ import {
   Loader2, ShoppingBag, Leaf, Apple, Cookie, Egg, CupSoda, Package, Layers,
   ChevronRight, ChevronLeft, Sparkles, Gift, Heart, ArrowRight
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 import ProductGrid from './ProductGrid';
 
@@ -34,7 +35,7 @@ const defaultCarouselSlides = [
     is_fallback: true
   },
   {
-    image_url: '/assets/Gemini_Generated_Image_dqtqk0dqtqk0dqtq.png',
+    image_url: '/assets/jack-lee-IH65r4HEQWQ-unsplash.jpg',
     badge: 'Fresh Foods, Certified Organic Sourced',
     title: 'Need it fresh, fast, and easy? Shop with us',
     description: 'From farm-fresh produce to pantry must-haves—everything you need, delivered straight to your doorstep in pristine condition.',
@@ -103,12 +104,13 @@ export default function Homepage() {
   const navigate = useNavigate();
   const location = useLocation();
   const catalogRef = useRef(null);
-  const mainTrackRef = useRef(null);
   const smallTrackRef = useRef(null);
+  const categoryScrollRef = useRef(null);
+  const [isGridView, setIsGridView] = useState(false);
 
   const getImageUrl = (url) => {
     if (!url) return '';
-    if (url.startsWith('http') || url.startsWith('data:')) return url;
+    if (url.startsWith('http') || url.startsWith('data:') || url.startsWith('/assets')) return url;
     return `http://localhost:5000${url}`;
   };
 
@@ -169,43 +171,38 @@ export default function Homepage() {
   const mainBanners = banners.filter(b => b.type === 'Main Carousel');
   const smallBanners = banners.filter(b => b.type === 'Small Promo');
 
-  const carouselSlides = mainBanners.length > 0 ? mainBanners : defaultCarouselSlides;
+  const dbSlides = mainBanners.map(b => ({
+    image: b.image_url,
+    target_link: b.target_link,
+    is_db: true
+  }));
+  const staticSlides = defaultCarouselSlides.map(s => ({
+    image: s.image_url,
+    target_link: s.target_link,
+    badge: s.badge,
+    title: s.title,
+    description: s.description,
+    buttonText: s.buttonText,
+    is_fallback: s.is_fallback
+  }));
+  const homepageSlides = [...dbSlides, ...staticSlides];
+  const activeSlideIndex = currentSlideIndex < homepageSlides.length ? currentSlideIndex : 0;
+
   const displaySmallBanners = smallBanners.length > 0 ? smallBanners : defaultSmallBanners;
 
   const [smallBannerIndex, setSmallBannerIndex] = useState(0);
 
   // Duplicated arrays for infinite looping
-  const mainSlidesLoop = [...carouselSlides, ...carouselSlides];
   const smallBannersLoop = [...displaySmallBanners, ...displaySmallBanners];
 
   // Auto swapping main carousel — slide left every 10s
   useEffect(() => {
-    if (carouselSlides.length <= 1) return;
+    if (homepageSlides.length <= 1) return;
     const timer = setInterval(() => {
-      setCurrentSlideIndex((prev) => prev + 1);
+      setCurrentSlideIndex((prev) => (prev + 1) % homepageSlides.length);
     }, 10000);
     return () => clearInterval(timer);
-  }, [carouselSlides.length]);
-
-  // Snap main carousel back to first copy when it reaches the duplicate set
-  useEffect(() => {
-    if (currentSlideIndex >= carouselSlides.length) {
-      const timeout = setTimeout(() => {
-        if (mainTrackRef.current) {
-          mainTrackRef.current.style.transition = 'none';
-        }
-        setCurrentSlideIndex(currentSlideIndex - carouselSlides.length);
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            if (mainTrackRef.current) {
-              mainTrackRef.current.style.transition = '';
-            }
-          });
-        });
-      }, 650);
-      return () => clearTimeout(timeout);
-    }
-  }, [currentSlideIndex, carouselSlides.length]);
+  }, [homepageSlides.length]);
 
   // Auto swapping small promo banners — one card at a time, every 3 seconds
   useEffect(() => {
@@ -255,16 +252,6 @@ export default function Homepage() {
     }
   };
 
-  const handlePrevSlide = (e) => {
-    e.stopPropagation();
-    setCurrentSlideIndex((prev) => (prev === 0 ? carouselSlides.length - 1 : prev - 1));
-  };
-
-  const handleNextSlide = (e) => {
-    e.stopPropagation();
-    setCurrentSlideIndex((prev) => prev + 1);
-  };
-
   const handleCategoryClick = (catId) => {
     const params = new URLSearchParams(location.search);
     if (catId) {
@@ -277,90 +264,212 @@ export default function Homepage() {
 
   return (
     <div className="flex-1 flex flex-col font-sans bg-[#f6f6f6] pb-16">
-      {/* ── Main Hero Carousel Slider (Full-Width Edge-to-Edge) ── */}
-      <div className="relative overflow-hidden w-full h-[240px] sm:h-[300px] md:h-[350px] lg:h-[390px] shadow-sm bg-white group">
-          {/* CSS translateX sliding track */}
-          <div
-            ref={mainTrackRef}
-            className="flex transition-transform duration-[600ms] ease-in-out h-full"
-            style={{
-              width: `${mainSlidesLoop.length * 100}%`,
-              transform: `translateX(-${(currentSlideIndex * 100) / mainSlidesLoop.length}%)`,
-            }}
-          >
-            {mainSlidesLoop.map((slide, idx) => (
-              <div
-                key={`main-slide-${idx}`}
-                className="relative flex-shrink-0 h-full cursor-pointer"
-                style={{ width: `${100 / mainSlidesLoop.length}%` }}
-                onClick={() => handleBannerClick(slide.target_link)}
-              >
-                <img
-                  src={getImageUrl(slide.image_url)}
-                  alt={slide.title || 'Hero Banner'}
-                  className="absolute inset-0 w-full h-full object-fill z-0"
-                />
-                {(slide.is_fallback || slide.title) && (
-                  <>
-                    <div className="absolute inset-0 bg-gradient-to-r from-slate-950/75 via-slate-950/35 to-transparent z-10" />
-                    <div className="absolute inset-0 flex flex-col justify-center p-8 sm:p-12 md:p-16 z-20">
-                      <div className="space-y-4 sm:space-y-6 text-white max-w-xl select-none text-left">
-                        {slide.badge && (
-                          <div>
-                            <span className="inline-flex items-center gap-1.5 px-4 py-1 rounded-full bg-white/15 border border-white/10 text-white text-[10px] font-black uppercase tracking-wider backdrop-blur-sm">
-                              ✳ {slide.badge}
-                            </span>
-                          </div>
-                        )}
-                        {slide.title && (
-                          <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black leading-tight tracking-tight text-white drop-shadow-sm">
-                            {slide.title}
-                          </h1>
-                        )}
-                        {slide.description && (
-                          <p className="text-xs sm:text-sm text-white/80 leading-relaxed max-w-md drop-shadow-sm hidden sm:block">
-                            {slide.description}
-                          </p>
-                        )}
-                        <div className="pt-1">
-                          <button
-                            onClick={(e) => { e.stopPropagation(); handleBannerClick(slide.target_link); }}
-                            className="px-5 py-2.5 bg-white hover:bg-slate-50 text-slate-900 rounded-xl text-xs font-black uppercase tracking-widest shadow-md transition active:scale-95 cursor-pointer inline-flex items-center gap-2"
-                          >
-                            <ShoppingBag className="w-4 h-4 text-emerald-600" />
-                            {slide.buttonText || 'Shop Now'}
-                          </button>
-                        </div>
-                      </div>
+      {/* ── Editorial Slider Hero Banner (Full-Width Edge-to-Edge) ── */}
+      <div className="relative overflow-hidden w-full min-h-[240px] sm:min-h-[300px] md:min-h-[350px] lg:min-h-[390px] shadow-sm flex bg-white">
+        <AnimatePresence>
+          {homepageSlides.length > 0 && homepageSlides[activeSlideIndex] && (
+            <motion.div
+              key={activeSlideIndex}
+              initial={{ x: '100%', opacity: 0.9 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: '-100%', opacity: 0.9 }}
+              transition={{ duration: 1.0, ease: 'easeInOut' }}
+              className={`absolute inset-0 p-8 sm:p-12 md:p-16 flex flex-col justify-center text-left bg-cover bg-center ${homepageSlides[activeSlideIndex]?.target_link ? 'cursor-pointer' : ''
+                }`}
+              style={{ backgroundImage: `url(${getImageUrl(homepageSlides[activeSlideIndex]?.image)})` }}
+              onClick={() => {
+                if (homepageSlides[activeSlideIndex]?.target_link) {
+                  handleBannerClick(homepageSlides[activeSlideIndex]?.target_link);
+                }
+              }}
+            >
+              {/* Dark overlay for readability */}
+              {!homepageSlides[activeSlideIndex]?.is_db && (
+                <div className="absolute inset-0 bg-gradient-to-r from-slate-950/80 via-slate-950/35 to-transparent z-0" />
+              )}
+
+              {/* Content panel */}
+              {!homepageSlides[activeSlideIndex]?.is_db && (
+                <div className="space-y-6 text-white max-w-xl text-left z-10">
+                  {/* Badge */}
+                  {homepageSlides[activeSlideIndex]?.badge && (
+                    <div>
+                      <span className="inline-flex items-center gap-1.5 px-4.5 py-1.5 rounded-full bg-white/15 border border-white/10 text-white text-[10px] font-black uppercase tracking-wider backdrop-blur-sm">
+                        ✳ {homepageSlides[activeSlideIndex].badge}
+                      </span>
                     </div>
-                  </>
-                )}
-              </div>
+                  )}
+
+                  {/* Title */}
+                  {homepageSlides[activeSlideIndex]?.title && (
+                    <h1 className="text-3xl sm:text-4xl md:text-5xl font-black leading-tight tracking-tight text-white drop-shadow-sm">
+                      {homepageSlides[activeSlideIndex].title}
+                    </h1>
+                  )}
+
+                  {/* Description */}
+                  {homepageSlides[activeSlideIndex]?.description && (
+                    <p className="text-xs sm:text-sm text-white/80 leading-relaxed max-w-md drop-shadow-sm">
+                      {homepageSlides[activeSlideIndex].description}
+                    </p>
+                  )}
+
+                  {/* Button */}
+                  <div className="pt-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        catalogRef.current?.scrollIntoView({ behavior: 'smooth' });
+                      }}
+                      className="px-7 py-3.5 bg-white text-slate-900 hover:bg-slate-100 rounded-xl text-xs font-black uppercase tracking-widest shadow-md transition active:scale-95 cursor-pointer inline-flex items-center gap-2"
+                    >
+                      <ShoppingBag className="w-4 h-4 text-emerald-600" />
+                      {homepageSlides[activeSlideIndex]?.buttonText || 'Shop Now'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Left Arrow Button */}
+        {homepageSlides.length > 1 && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setCurrentSlideIndex((prev) => (prev === 0 ? homepageSlides.length - 1 : prev - 1));
+            }}
+            className="absolute left-4 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 hover:bg-white text-slate-800 flex items-center justify-center transition z-25 cursor-pointer shadow-lg border border-slate-200"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+        )}
+
+        {/* Right Arrow Button */}
+        {homepageSlides.length > 1 && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setCurrentSlideIndex((prev) => (prev + 1) % homepageSlides.length);
+            }}
+            className="absolute right-4 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 hover:bg-white text-slate-800 flex items-center justify-center transition z-25 cursor-pointer shadow-lg border border-slate-200"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        )}
+
+        {/* Pagination Dots at bottom-left */}
+        {homepageSlides.length > 1 && (
+          <div className="absolute bottom-6 left-8 sm:left-12 md:left-16 z-20 flex items-center gap-2.5">
+            {homepageSlides.map((_, idx) => (
+              <button
+                key={idx}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCurrentSlideIndex(idx);
+                }}
+                className={`h-2.5 rounded-full transition-all duration-300 cursor-pointer ${activeSlideIndex === idx
+                  ? 'w-7 bg-amber-400'
+                  : 'w-2.5 bg-white/35 hover:bg-white/50'
+                  }`}
+              />
             ))}
           </div>
+        )}
+      </div>
 
-          {/* Left Arrow Button */}
-          {carouselSlides.length > 1 && (
-            <button
-              onClick={handlePrevSlide}
-              className="absolute left-4 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white hover:bg-slate-100 text-slate-800 flex items-center justify-center transition opacity-0 group-hover:opacity-100 z-30 cursor-pointer shadow-lg border border-slate-200"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-          )}
+      <div className="max-w-[1200px] w-full mx-auto px-4 sm:px-6 lg:px-8 mt-8 flex-1 flex flex-col gap-8">
+        {/* ── Category Section ── */}
+        <div className="space-y-6">
+          {/* Centered Dark Banner for Category Section Header */}
+          <div className="w-full bg-slate-900 rounded-2xl py-4 px-4 text-center shadow-md relative overflow-hidden">
+            <h3 className="text-xl md:text-2xl font-black text-white uppercase tracking-wider">
+              Shop by Category
+            </h3>
+          </div>
 
-          {/* Right Arrow Button */}
-          {carouselSlides.length > 1 && (
-            <button
-              onClick={handleNextSlide}
-              className="absolute right-4 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white hover:bg-slate-100 text-slate-800 flex items-center justify-center transition opacity-0 group-hover:opacity-100 z-30 cursor-pointer shadow-lg border border-slate-200"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
+          {loadingCategories ? (
+            <div className="flex items-center justify-center gap-2 py-6">
+              <Loader2 className="w-5 h-5 animate-spin text-emerald-600" />
+              <span className="text-xs text-slate-450 font-bold">Loading shelves...</span>
+            </div>
+          ) : (
+            <div className="relative w-full px-10">
+              {/* Left Navigation Arrow */}
+              <button
+                onClick={() => categoryScrollRef.current?.scrollBy({ left: -240, behavior: 'smooth' })}
+                className="absolute left-0 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center shadow border border-slate-200 transition z-10 cursor-pointer"
+                aria-label="Previous categories"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+
+              {/* Right Navigation Arrow */}
+              <button
+                onClick={() => categoryScrollRef.current?.scrollBy({ left: 240, behavior: 'smooth' })}
+                className="absolute right-0 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center shadow border border-slate-200 transition z-10 cursor-pointer"
+                aria-label="Next categories"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+
+              {/* Category Carousel Slider Track */}
+              <div
+                ref={categoryScrollRef}
+                className="flex flex-row gap-6 overflow-x-auto no-scrollbar scroll-smooth py-2 px-1 w-full flex-nowrap"
+              >
+                {/* All Categories Item */}
+                <button
+                  onClick={() => handleCategoryClick(null)}
+                  className="flex flex-col items-center gap-2 cursor-pointer group flex-shrink-0"
+                >
+                  <div className={`w-[110px] h-[110px] rounded-[18px] flex items-center justify-center border transition-all duration-300 overflow-hidden ${selectedCategory === null
+                    ? 'bg-slate-50 border-2 border-slate-900 scale-105 shadow-md'
+                    : 'bg-white border border-slate-200 hover:border-slate-400 hover:scale-105 shadow-sm'
+                    }`}>
+                    <span className="text-5xl select-none">🍏</span>
+                  </div>
+                  <span className="text-[10px] sm:text-[11px] font-bold text-slate-655 group-hover:text-slate-850 text-center leading-snug uppercase tracking-wide">
+                    All Items
+                  </span>
+                </button>
+
+                {/* Individual Category Items */}
+                {categories.map((cat) => {
+                  const isSelected = selectedCategory === cat._id;
+                  const details = getCategoryDetails(cat.name);
+                  return (
+                    <button
+                      key={cat._id}
+                      onClick={() => handleCategoryClick(cat._id)}
+                      className="flex flex-col items-center gap-2 cursor-pointer group flex-shrink-0"
+                    >
+                      <div className={`w-[110px] h-[110px] rounded-[18px] flex items-center justify-center border transition-all duration-300 overflow-hidden ${isSelected
+                        ? 'bg-slate-50 border-2 border-slate-900 scale-105 shadow-md'
+                        : 'bg-white border border-slate-200 hover:border-slate-400 hover:scale-105 shadow-sm'
+                        }`}>
+                        {cat.image_url ? (
+                          <img
+                            src={cat.image_url.startsWith('http') ? cat.image_url : `http://localhost:5000${cat.image_url}`}
+                            alt={cat.name}
+                            className="w-full h-full object-contain p-2.5 rounded-[18px]"
+                          />
+                        ) : (
+                          <span className="text-5xl select-none">{details.emoji}</span>
+                        )}
+                      </div>
+                      <span className="text-[10px] sm:text-[11px] font-bold text-slate-650 group-hover:text-slate-850 text-center leading-tight uppercase tracking-wider">
+                        {cat.name}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           )}
         </div>
 
-        <div className="max-w-[1200px] w-full mx-auto px-4 sm:px-6 lg:px-8 mt-8 flex-1 flex flex-col gap-8">
         {/* ── Secondary Promotional Banners (4-Item Sliding Carousel) ── */}
         {displaySmallBanners.length > 0 && (() => {
           const total = smallBannersLoop.length; // doubled length
@@ -449,107 +558,47 @@ export default function Homepage() {
           );
         })()}
 
-        {/* ── 3. Centered "Shop by Category" Circles ── */}
-        <div className="bg-white rounded-2xl border border-slate-205/65 p-6 md:p-8 space-y-6 shadow-sm">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3.5">
-            <div className="text-left">
-              <h3 className="text-base font-black text-slate-800 uppercase tracking-wide">Shop by Category</h3>
-              <p className="text-[11px] text-slate-400 font-semibold mt-0.5">Explore our daily grocery shelves and popular items</p>
+        {/* ── Product Catalog Section ── */}
+        <div className="space-y-4 pt-4" ref={catalogRef} id="catalog">
+          {/* Distinct Product Section Banner */}
+          <div className="w-full bg-[#064e3b] rounded-2xl py-6 px-4 text-center shadow-md relative overflow-hidden">
+            <h2 className="text-xl md:text-2xl font-black text-white uppercase tracking-wider relative z-10">
+              {selectedCategory
+                ? categories.find(c => c._id === selectedCategory)?.name || 'Category Products'
+                : searchQuery
+                  ? `Search: "${searchQuery}"`
+                  : 'All Products'}
+            </h2>
+          </div>
+
+          {/* Controls Row (View More and Clear Filters) */}
+          <div className="flex justify-between items-center gap-4 py-2 px-1">
+            <div>
+              {/* Clear filters trigger if active */}
+              {(selectedCategory || searchQuery) && (
+                <button
+                  onClick={() => navigate('/')}
+                  className="text-xs text-emerald-755 hover:text-emerald-850 font-bold border border-emerald-200 hover:border-emerald-300 px-3.5 py-1.5 rounded-xl bg-emerald-50/50 transition cursor-pointer"
+                >
+                  Clear all filters
+                </button>
+              )}
             </div>
+
+            {/* Green View More Button positioned on the right */}
             <button
-              onClick={() => handleCategoryClick(null)}
-              className="text-xs font-bold text-emerald-650 hover:text-emerald-700 transition"
+              onClick={() => setIsGridView(!isGridView)}
+              className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold uppercase tracking-wider rounded-xl transition duration-150 active:scale-95 cursor-pointer shadow-sm"
             >
-              View More &rarr;
+              {isGridView ? 'View Slider' : 'View More'}
             </button>
           </div>
 
-          {loadingCategories ? (
-            <div className="flex items-center justify-center gap-2 py-6">
-              <Loader2 className="w-5 h-5 animate-spin text-emerald-600" />
-              <span className="text-xs text-slate-450 font-bold">Loading shelves...</span>
-            </div>
-          ) : (
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-6 justify-center">
-
-              {/* All Categories Item */}
-              <button
-                onClick={() => handleCategoryClick(null)}
-                className="flex flex-col items-center gap-2 cursor-pointer group"
-              >
-                <div className={`w-16 h-16 rounded-[12px] flex items-center justify-center border transition-all duration-300 overflow-hidden ${selectedCategory === null
-                  ? 'bg-slate-50 border-2 border-blue-950 scale-105 shadow-md'
-                  : 'bg-white border border-blue-950/20 hover:border-blue-950/60 hover:scale-105 shadow-sm'
-                  }`}>
-                  <span className="text-2xl select-none">🍏</span>
-                </div>
-                <span className="text-[10px] sm:text-[11px] font-bold text-slate-650 group-hover:text-slate-850 text-center leading-snug uppercase tracking-wide">
-                  All Items
-                </span>
-              </button>
-
-              {/* Individual Category Items */}
-              {categories.map((cat) => {
-                const isSelected = selectedCategory === cat._id;
-                const details = getCategoryDetails(cat.name);
-                return (
-                  <button
-                    key={cat._id}
-                    onClick={() => handleCategoryClick(cat._id)}
-                    className="flex flex-col items-center gap-2 cursor-pointer group"
-                  >
-                    <div className={`w-16 h-16 rounded-[12px] flex items-center justify-center border transition-all duration-300 overflow-hidden ${isSelected
-                      ? 'bg-slate-50 border-2 border-blue-950 scale-105 shadow-md'
-                      : 'bg-white border border-blue-950/20 hover:border-blue-950/60 hover:scale-105 shadow-sm'
-                      }`}>
-                      {cat.image_url ? (
-                        <img
-                          src={cat.image_url.startsWith('http') ? cat.image_url : `http://localhost:5000${cat.image_url}`}
-                          alt={cat.name}
-                          className="w-full h-full object-contain p-1.5 rounded-[12px]"
-                        />
-                      ) : (
-                        <span className="text-2xl select-none">{details.emoji}</span>
-                      )}
-                    </div>
-                    <span className="text-[10px] sm:text-[11px] font-bold text-slate-600 group-hover:text-slate-850 text-center leading-tight uppercase tracking-wider">
-                      {cat.name}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* ── Product Catalog Section ── */}
-        <div className="space-y-4 pt-4" ref={catalogRef} id="catalog">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/50 pb-3 text-left">
-            <div>
-              <h2 className="text-lg font-black text-slate-800 tracking-tight uppercase">
-                {selectedCategory
-                  ? `${categories.find(c => c._id === selectedCategory)?.name || 'Category Products'}`
-                  : searchQuery
-                    ? `Search: "${searchQuery}"`
-                    : 'Farmed Fruits & Daily Fresh Groceries'}
-              </h2>
-              <p className="text-xs text-slate-400 font-semibold mt-0.5">
-                Premium selected, clean and washed foods. Delivered within hours.
-              </p>
-            </div>
-
-            {/* Clear filters trigger */}
-            {(selectedCategory || searchQuery) && (
-              <button
-                onClick={() => navigate('/')}
-                className="text-xs text-emerald-700 hover:text-emerald-800 font-bold border border-emerald-200 hover:border-emerald-300 px-3.5 py-1.5 rounded-xl bg-emerald-50/50 transition cursor-pointer self-start sm:self-auto"
-              >
-                Clear all filters
-              </button>
-            )}
-          </div>
-
-          <ProductGrid selectedCategory={selectedCategory} searchQuery={searchQuery} />
+          <ProductGrid
+            selectedCategory={selectedCategory}
+            searchQuery={searchQuery}
+            isGridView={isGridView}
+          />
         </div>
 
       </div>

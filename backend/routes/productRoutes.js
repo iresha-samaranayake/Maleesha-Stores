@@ -46,7 +46,7 @@ router.get('/:id', async (req, res, next) => {
 // @route   POST /api/products
 router.post('/', authenticateUser, authorizeRoles('admin'), async (req, res, next) => {
   try {
-    const { name, price, unit, category_id, stock, image_url, discountPercentage } = req.body;
+    const { name, price, unit, category_id, stock, image_url, discountPercentage, unitMeasurement } = req.body;
 
     const product = new Product({
       name,
@@ -55,7 +55,8 @@ router.post('/', authenticateUser, authorizeRoles('admin'), async (req, res, nex
       category_id,
       stock,
       image_url,
-      discountPercentage: discountPercentage !== undefined ? Number(discountPercentage) : 0
+      discountPercentage: discountPercentage !== undefined ? Number(discountPercentage) : 0,
+      unitMeasurement: unitMeasurement || ''
     });
 
     const savedProduct = await product.save();
@@ -71,7 +72,7 @@ router.post('/', authenticateUser, authorizeRoles('admin'), async (req, res, nex
 // @route   PUT /api/products/:id
 router.put('/:id', authenticateUser, authorizeRoles('admin'), async (req, res, next) => {
   try {
-    const { name, price, unit, category_id, stock, image_url, discountPercentage } = req.body;
+    const { name, price, unit, category_id, stock, image_url, discountPercentage, unitMeasurement } = req.body;
 
     const product = await Product.findById(req.params.id);
     if (!product) {
@@ -87,6 +88,7 @@ router.put('/:id', authenticateUser, authorizeRoles('admin'), async (req, res, n
     if (discountPercentage !== undefined) {
       product.discountPercentage = Number(discountPercentage);
     }
+    if (unitMeasurement !== undefined) product.unitMeasurement = unitMeasurement;
 
     const updatedProduct = await product.save();
     const populatedProduct = await Product.findById(updatedProduct._id).populate('category_id');

@@ -18,6 +18,8 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     setUser(null);
     localStorage.removeItem('userInfo');
+    localStorage.removeItem('maleesha_stores_guest_cart');
+    localStorage.removeItem('maleesha_stores_cart');
   };
 
   useEffect(() => {
@@ -32,7 +34,7 @@ export const AuthProvider = ({ children }) => {
               headers: { Authorization: `Bearer ${userData.token}` }
             };
             const { data } = await axios.get('/api/auth/validate', config);
-            
+
             // Keep user token since backend /validate returns user details without token
             const updatedUser = { ...data, token: userData.token };
             setUser(updatedUser);

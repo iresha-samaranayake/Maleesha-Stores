@@ -48,5 +48,22 @@ const authorizeRoles = (...roles) => {
   };
 };
 
-module.exports = { authenticateUser, authorizeRoles };
+const optionalAuthenticateUser = async (req, res, next) => {
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith('Bearer')
+  ) {
+    try {
+      const token = req.headers.authorization.split(' ')[1];
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret');
+      req.user = await User.findById(decoded.id).select('-password');
+    } catch (error) {
+      console.error('Optional auth middleware token verify error:', error);
+    }
+  }
+  next();
+};
+
+module.exports = { authenticateUser, authorizeRoles, optionalAuthenticateUser };
+
 

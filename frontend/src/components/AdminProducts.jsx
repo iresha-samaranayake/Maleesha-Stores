@@ -22,7 +22,8 @@ export default function AdminProducts() {
     category_id: '',
     stock: '',
     image_url: '',
-    discountPercentage: 0
+    discountPercentage: 0,
+    unitMeasurement: ''
   });
 
   // Search/Filter States
@@ -61,7 +62,8 @@ export default function AdminProducts() {
       category_id: categories[0]?._id || '',
       stock: '',
       image_url: '',
-      discountPercentage: 0
+      discountPercentage: 0,
+      unitMeasurement: ''
     });
     setShowProductForm(true);
   };
@@ -75,7 +77,8 @@ export default function AdminProducts() {
       category_id: prod.category_id?._id || prod.category_id || '',
       stock: prod.stock,
       image_url: prod.image_url || '',
-      discountPercentage: prod.discountPercentage || 0
+      discountPercentage: prod.discountPercentage || 0,
+      unitMeasurement: prod.unitMeasurement || ''
     });
     setShowProductForm(true);
   };
@@ -185,13 +188,18 @@ export default function AdminProducts() {
                           )}
                           <div>
                             <p className="font-bold text-slate-800">{prod.name}</p>
-                            <p className="text-[10px] text-slate-400 mt-0.5">Unit: {prod.unit}</p>
+                            <p className="text-[10px] text-slate-400 mt-0.5">Unit: {prod.unit}{prod.unitMeasurement ? ` (${prod.unitMeasurement})` : ''}</p>
                           </div>
                         </div>
                       </td>
                       <td className="p-4">
-                        <span className="px-2.5 py-0.5 bg-slate-100 border border-slate-200 rounded-full text-[11px] font-semibold text-slate-650">
-                          {prod.category_id?.name || 'Uncategorized'}
+                        <span className="px-2.5 py-0.5 bg-slate-100 border border-slate-200 rounded-full text-[11px] font-semibold text-slate-655">
+                          {(() => {
+                            const cat = categories.find(c => c._id === (prod.category_id?._id || prod.category_id));
+                            if (!cat) return 'Uncategorized';
+                            const parent = cat.parentId ? categories.find(p => p._id === cat.parentId) : null;
+                            return parent ? `${parent.name} > ${cat.name}` : cat.name;
+                          })()}
                         </span>
                       </td>
                       <td className="p-4 font-bold text-slate-900">
@@ -273,7 +281,7 @@ export default function AdminProducts() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-400 uppercase">Price (Rs.)</label>
                   <input
@@ -301,6 +309,16 @@ export default function AdminProducts() {
                     <option value="100g">Per 100g</option>
                   </select>
                 </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-400 uppercase">Weight / Vol.</label>
+                  <input
+                    type="text"
+                    value={newProduct.unitMeasurement || ''}
+                    onChange={(e) => setNewProduct({ ...newProduct, unitMeasurement: e.target.value })}
+                    placeholder="e.g. 500g, 1kg"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
               </div>
 
               <div className="grid grid-cols-3 gap-4">
@@ -313,9 +331,13 @@ export default function AdminProducts() {
                     className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   >
                     <option value="" disabled>Select category</option>
-                    {categories.map((c) => (
-                      <option key={c._id} value={c._id}>{c.name}</option>
-                    ))}
+                    {categories.map((c) => {
+                      const parent = c.parentId ? categories.find(p => p._id === c.parentId) : null;
+                      const displayName = parent ? `${parent.name} > ${c.name}` : c.name;
+                      return (
+                        <option key={c._id} value={c._id}>{displayName}</option>
+                      );
+                    })}
                   </select>
                 </div>
                 <div className="space-y-1">

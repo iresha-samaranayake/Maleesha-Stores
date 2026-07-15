@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useCart } from '../context/CartContext';
-import { useLocation, Link } from 'react-router-dom';
+import { useLocation, Link, useNavigate } from 'react-router-dom';
 import {
   Loader2, Truck, Clock, ShieldCheck, ChevronRight, TrendingUp,
   Menu, Apple, Leaf, Egg, CupSoda, Cookie, Package, Layers, Search,
@@ -53,7 +53,7 @@ const slides = [
     title: 'Need it fresh, fast, and easy? Shop with us',
     description: 'From farm-fresh produce to pantry must-haves—everything you need, delivered straight to your doorstep in pristine condition.',
     buttonText: 'Show Now',
-    image: '/assets/Gemini_Generated_Image_dqtqk0dqtqk0dqtq.png'
+    image: '/assets/jack-lee-IH65r4HEQWQ-unsplash.jpg'
   },
   {
     backgroundClass: 'bg-[#7c2d12]', // Deep Rust/Orange
@@ -73,19 +73,14 @@ export default function CustomerDashboard() {
   const location = useLocation();
   const catalogRef = useRef(null);
 
+  const navigate = useNavigate();
+
   // Auto swapping banner image index
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentImageIndex((prev) => (prev + 1) % slides.length);
-    }, 10000);
-    return () => clearInterval(timer);
-  }, []);
-
   const getImageUrl = (url) => {
     if (!url) return '';
-    if (url.startsWith('http') || url.startsWith('data:')) return url;
+    if (url.startsWith('http') || url.startsWith('data:') || url.startsWith('/assets')) return url;
     return `http://localhost:5000${url}`;
   };
 
@@ -94,6 +89,61 @@ export default function CustomerDashboard() {
   const [orders, setOrders] = useState([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [loadingOrders, setLoadingOrders] = useState(true);
+  const [banners, setBanners] = useState([]);
+  const [loadingBanners, setLoadingBanners] = useState(true);
+
+  // Fetch Banners
+  useEffect(() => {
+    const fetchBanners = async () => {
+      setLoadingBanners(true);
+      try {
+        const res = await axios.get('/api/banners');
+        setBanners(res.data);
+      } catch (err) {
+        console.error('Error fetching banners:', err);
+      } finally {
+        setLoadingBanners(false);
+      }
+    };
+    fetchBanners();
+  }, []);
+
+  const mainBanners = banners.filter(b => b.type === 'Main Carousel');
+  const dbSlides = mainBanners.map(b => ({
+    image: b.image_url,
+    target_link: b.target_link,
+    is_db: true
+  }));
+  const dashboardSlides = [...slides, ...dbSlides];
+
+  useEffect(() => {
+    if (dashboardSlides.length <= 1) return;
+    const timer = setInterval(() => {
+      setCurrentImageIndex((prev) => (prev + 1) % dashboardSlides.length);
+    }, 10000);
+    return () => clearInterval(timer);
+  }, [dashboardSlides.length]);
+
+  const activeSlideIndex = currentImageIndex < dashboardSlides.length ? currentImageIndex : 0;
+
+  const handleBannerClick = (targetLink) => {
+    if (!targetLink) return;
+    if (targetLink === '#upload-bill' || targetLink?.toLowerCase().includes('upload') || targetLink?.toLowerCase().includes('bill')) {
+      if (!user) {
+        sessionStorage.setItem('intendedAction', JSON.stringify({ type: 'UPLOAD_BILL' }));
+        showToast('Please log in to upload your grocery list', 'info');
+        navigate('/login');
+        return;
+      }
+    }
+    if (targetLink === '#catalog') {
+      catalogRef.current?.scrollIntoView({ behavior: 'smooth' });
+    } else if (targetLink.startsWith('http')) {
+      window.open(targetLink, '_blank');
+    } else {
+      navigate(targetLink);
+    }
+  };
 
   // Selection/Search states
   const [selectedCategory, setSelectedCategory] = useState(null);
@@ -189,72 +239,94 @@ export default function CustomerDashboard() {
       <div className="relative overflow-hidden w-full min-h-[240px] sm:min-h-[300px] md:min-h-[350px] lg:min-h-[390px] shadow-sm flex bg-white">
 
           <AnimatePresence>
-            <motion.div
-              key={currentImageIndex}
-              initial={{ x: '100%', opacity: 0.9 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: '-100%', opacity: 0.9 }}
-              transition={{ duration: 1.0, ease: 'easeInOut' }}
-              className="absolute inset-0 p-8 sm:p-12 md:p-16 flex flex-col justify-center text-left bg-cover bg-center"
-              style={{ backgroundImage: `url(${slides[currentImageIndex].image})` }}
-            >
-              {/* Dark overlay for readability */}
-              <div className="absolute inset-0 bg-gradient-to-r from-slate-950/80 via-slate-950/35 to-transparent z-0" />
+            {dashboardSlides.length > 0 && dashboardSlides[activeSlideIndex] && (
+              <motion.div
+                key={activeSlideIndex}
+                initial={{ x: '100%', opacity: 0.9 }}
+                animate={{ x: 0, opacity: 1 }}
+                exit={{ x: '-100%', opacity: 0.9 }}
+                transition={{ duration: 1.0, ease: 'easeInOut' }}
+                className={`absolute inset-0 p-8 sm:p-12 md:p-16 flex flex-col justify-center text-left bg-cover bg-center ${
+                  dashboardSlides[activeSlideIndex]?.target_link ? 'cursor-pointer' : ''
+                }`}
+                style={{ backgroundImage: `url(${getImageUrl(dashboardSlides[activeSlideIndex]?.image)})` }}
+                onClick={() => {
+                  if (dashboardSlides[activeSlideIndex]?.target_link) {
+                    handleBannerClick(dashboardSlides[activeSlideIndex]?.target_link);
+                  }
+                }}
+              >
+                {/* Dark overlay for readability */}
+                {!dashboardSlides[activeSlideIndex]?.is_db && (
+                  <div className="absolute inset-0 bg-gradient-to-r from-slate-950/80 via-slate-950/35 to-transparent z-0" />
+                )}
 
-              {/* Content panel */}
-              <div className="space-y-6 text-white max-w-xl text-left z-10">
+                {/* Content panel */}
+                {!dashboardSlides[activeSlideIndex]?.is_db && (
+                  <div className="space-y-6 text-white max-w-xl text-left z-10">
 
-                {/* Badge */}
-                <div>
-                  <span className="inline-flex items-center gap-1.5 px-4.5 py-1.5 rounded-full bg-white/15 border border-white/10 text-white text-[10px] font-black uppercase tracking-wider backdrop-blur-sm">
-                    ✳ {slides[currentImageIndex].badge}
-                  </span>
-                </div>
+                    {/* Badge */}
+                    {dashboardSlides[activeSlideIndex]?.badge && (
+                      <div>
+                        <span className="inline-flex items-center gap-1.5 px-4.5 py-1.5 rounded-full bg-white/15 border border-white/10 text-white text-[10px] font-black uppercase tracking-wider backdrop-blur-sm">
+                          ✳ {dashboardSlides[activeSlideIndex].badge}
+                        </span>
+                      </div>
+                    )}
 
-                {/* Title */}
-                <h1 className="text-3xl sm:text-4xl md:text-5xl font-black leading-tight tracking-tight text-white drop-shadow-sm">
-                  {slides[currentImageIndex].title}
-                </h1>
+                    {/* Title */}
+                    {dashboardSlides[activeSlideIndex]?.title && (
+                      <h1 className="text-3xl sm:text-4xl md:text-5xl font-black leading-tight tracking-tight text-white drop-shadow-sm">
+                        {dashboardSlides[activeSlideIndex].title}
+                      </h1>
+                    )}
 
-                {/* Description */}
-                <p className="text-xs sm:text-sm text-white/80 leading-relaxed max-w-md drop-shadow-sm">
-                  {slides[currentImageIndex].description}
-                </p>
+                    {/* Description */}
+                    {dashboardSlides[activeSlideIndex]?.description && (
+                      <p className="text-xs sm:text-sm text-white/80 leading-relaxed max-w-md drop-shadow-sm">
+                        {dashboardSlides[activeSlideIndex].description}
+                      </p>
+                    )}
 
-                {/* Button & Dots inline */}
-                <div className="flex flex-col gap-6 pt-2">
-                  <div>
-                    <button
-                      onClick={() => catalogRef.current?.scrollIntoView({ behavior: 'smooth' })}
-                      className="px-7 py-3.5 bg-white text-slate-900 hover:bg-slate-100 rounded-xl text-xs font-black uppercase tracking-widest shadow-md transition active:scale-95 cursor-pointer inline-flex items-center gap-2"
-                    >
-                      <ShoppingBag className="w-4 h-4" />
-                      {slides[currentImageIndex].buttonText}
-                    </button>
-                  </div>
-
-                  {/* Pagination Dots at bottom-left */}
-                  <div className="flex items-center gap-2.5 pt-2">
-                    {slides.map((_, idx) => (
+                    {/* Button */}
+                    <div className="pt-2">
                       <button
-                        key={idx}
                         onClick={(e) => {
                           e.stopPropagation();
-                          setCurrentImageIndex(idx);
+                          catalogRef.current?.scrollIntoView({ behavior: 'smooth' });
                         }}
-                        className={`h-2.5 rounded-full transition-all duration-300 cursor-pointer ${currentImageIndex === idx
-                          ? 'w-7 bg-amber-400'
-                          : 'w-2.5 bg-white/35 hover:bg-white/50'
-                          }`}
-                      />
-                    ))}
+                        className="px-7 py-3.5 bg-white text-slate-900 hover:bg-slate-100 rounded-xl text-xs font-black uppercase tracking-widest shadow-md transition active:scale-95 cursor-pointer inline-flex items-center gap-2"
+                      >
+                        <ShoppingBag className="w-4 h-4 text-emerald-600" />
+                        {dashboardSlides[activeSlideIndex]?.buttonText || 'Shop Now'}
+                      </button>
+                    </div>
+
                   </div>
-                </div>
+                )}
 
-              </div>
-
-            </motion.div>
+              </motion.div>
+            )}
           </AnimatePresence>
+
+          {/* Pagination Dots at bottom-left */}
+          {dashboardSlides.length > 1 && (
+            <div className="absolute bottom-6 left-8 sm:left-12 md:left-16 z-20 flex items-center gap-2.5">
+              {dashboardSlides.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCurrentImageIndex(idx);
+                  }}
+                  className={`h-2.5 rounded-full transition-all duration-300 cursor-pointer ${activeSlideIndex === idx
+                    ? 'w-7 bg-amber-400'
+                    : 'w-2.5 bg-white/35 hover:bg-white/50'
+                    }`}
+                />
+              ))}
+            </div>
+          )}
 
         </div>
 
@@ -325,64 +397,8 @@ export default function CustomerDashboard() {
         <motion.div
           variants={containerVariants}
           initial="hidden" animate="visible"
-          className="grid grid-cols-1 md:grid-cols-3 gap-6"
+          className="grid grid-cols-1 gap-6"
         >
-          {/* Card 1: Loyalty Progress Promo Card */}
-          <motion.div
-            variants={itemVariants}
-            className="rounded-[24px] p-6 text-white relative overflow-hidden flex flex-col justify-between min-h-[180px] shadow-sm card-hover-lift"
-            style={{ background: 'linear-gradient(135deg, #10b981 0%, #047857 100%)' }}
-          >
-            <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full blur-xl pointer-events-none" />
-            <div className="space-y-1">
-              <span className="text-micro bg-white/25 border border-white/20 px-2 py-0.5 rounded-lg font-bold uppercase tracking-wider">
-                ⭐ Loyalty Status
-              </span>
-              <h3 className="text-subhead text-white pt-1">Grower Rewards</h3>
-              <p className="text-caption text-emerald-100/90 max-w-[200px] leading-relaxed">
-                Unlock higher rewards. You have accumulated {loyaltyPoints} points.
-              </p>
-            </div>
-            <div className="flex justify-between items-center pt-2">
-              <span className="text-body font-black text-white">{loyaltyPoints} Points</span>
-              <button
-                onClick={() => showToast('Redeem page coming soon!', 'info')}
-                className="px-4 py-1.5 bg-white text-emerald-800 rounded-full text-caption font-bold hover:bg-slate-50 transition-smooth cursor-pointer"
-              >
-                Redeem
-              </button>
-            </div>
-          </motion.div>
-
-          {/* Card 2: Active Coupon Promo Card */}
-          <motion.div
-            variants={itemVariants}
-            className="rounded-[24px] p-6 text-slate-800 bg-[#fefdf8] border border-amber-200/60 relative overflow-hidden flex flex-col justify-between min-h-[180px] shadow-sm card-hover-lift"
-          >
-            <div className="absolute top-[-30px] right-[-30px] w-24 h-24 bg-amber-100/30 rounded-full blur-xl pointer-events-none" />
-            <div className="space-y-1">
-              <span className="text-micro bg-amber-50 border border-amber-200 text-amber-700 px-2 py-0.5 rounded-lg font-bold uppercase tracking-wider">
-                🏷️ Active Coupons
-              </span>
-              <h3 className="text-subhead text-slate-900 pt-1 font-bold">FRESH10</h3>
-              <p className="text-caption text-slate-500 max-w-[200px] leading-relaxed">
-                Enjoy 10% off your fresh produce baskets this week.
-              </p>
-            </div>
-            <div className="flex justify-between items-center pt-2">
-              <span className="text-caption font-mono font-bold text-slate-600">Code: FRESH10</span>
-              <button
-                onClick={() => handleCopyCoupon('FRESH10')}
-                className={`flex items-center gap-1 px-4 py-1.5 rounded-full text-caption font-bold transition-all duration-300 cursor-pointer border ${copiedCoupon === 'FRESH10'
-                  ? 'bg-emerald-50 border-emerald-200 text-emerald-700 font-extrabold'
-                  : 'bg-emerald-600 hover:bg-emerald-500 border-emerald-600 text-white'
-                  }`}
-              >
-                {copiedCoupon === 'FRESH10' ? <><Check className="w-3.5 h-3.5" /> Copied</> : 'Copy Code'}
-              </button>
-            </div>
-          </motion.div>
-
           {/* Card 3: Fulfillment / Active Order Promo Card */}
           <motion.div
             variants={itemVariants}
@@ -419,7 +435,7 @@ export default function CustomerDashboard() {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-100 pb-4">
               <div>
                 <span className="text-micro text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-lg font-bold">
-                  Delivery Progress Timeline
+                  {activeOrder.customerDetails?.pickupType === 'pickup' ? 'Store Pickup Timeline' : 'Delivery Progress Timeline'}
                 </span>
                 <h3 className="text-body font-bold text-slate-800 mt-1.5">Order: #{activeOrder._id.slice(-6).toUpperCase()}</h3>
               </div>
@@ -439,12 +455,20 @@ export default function CustomerDashboard() {
               />
 
               <div className="relative z-10 flex justify-between items-center text-center">
-                {[
-                  { label: 'Placed', icon: ShoppingBag },
-                  { label: 'Packaged', icon: Package },
-                  { label: 'Shipped', icon: Truck },
-                  { label: 'Arrived', icon: Check }
-                ].map((step, idx) => {
+                {(activeOrder.customerDetails?.pickupType === 'pickup'
+                  ? [
+                      { label: 'Placed', icon: ShoppingBag },
+                      { label: 'Processing', icon: Package },
+                      { label: 'Ready for Pickup', icon: Truck },
+                      { label: 'Collected', icon: Check }
+                    ]
+                  : [
+                      { label: 'Placed', icon: ShoppingBag },
+                      { label: 'Packaged', icon: Package },
+                      { label: 'Shipped', icon: Truck },
+                      { label: 'Arrived', icon: Check }
+                    ]
+                ).map((step, idx) => {
                   const isActive = getTimelineStep(activeOrder.status) >= idx;
                   const isCurrent = getTimelineStep(activeOrder.status) === idx;
                   const Icon = step.icon;
@@ -496,7 +520,7 @@ export default function CustomerDashboard() {
                     <div className="flex justify-between items-center pt-1.5">
                       <span className="text-caption font-extrabold text-emerald-800">Rs. {product.price}</span>
                       <button
-                        onClick={() => { addToCart(product); showToast(`${product.name} added!`, 'success'); }}
+                        onClick={() => { addToCart(product); }}
                         className="w-6.5 h-6.5 flex items-center justify-center bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition-smooth cursor-pointer"
                       >
                         <Plus className="w-3 h-3" />

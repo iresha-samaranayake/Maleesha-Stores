@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import ProductCard from './ProductCard';
-import { RefreshCw, Inbox } from 'lucide-react';
+import { RefreshCw, Inbox, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const containerVariants = {
@@ -17,10 +17,11 @@ const itemVariants = {
   }
 };
 
-export default function ProductGrid({ selectedCategory, searchQuery }) {
+export default function ProductGrid({ selectedCategory, searchQuery, isGridView }) {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const productScrollRef = useRef(null);
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -58,7 +59,7 @@ export default function ProductGrid({ selectedCategory, searchQuery }) {
   if (loading) {
     return (
       <div className="w-full py-8">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
           {[...Array(8)].map((_, i) => (
             <div key={i} className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden p-4 space-y-4 animate-pulse">
               <div className="aspect-square w-full bg-slate-200 rounded-xl" />
@@ -104,13 +105,74 @@ export default function ProductGrid({ selectedCategory, searchQuery }) {
     );
   }
 
+  const slideLeft = () => {
+    if (productScrollRef.current) {
+      const firstChild = productScrollRef.current.firstElementChild;
+      if (firstChild) {
+        productScrollRef.current.scrollBy({ left: -(firstChild.offsetWidth + 12), behavior: 'smooth' });
+      }
+    }
+  };
+
+  const slideRight = () => {
+    if (productScrollRef.current) {
+      const firstChild = productScrollRef.current.firstElementChild;
+      if (firstChild) {
+        productScrollRef.current.scrollBy({ left: firstChild.offsetWidth + 12, behavior: 'smooth' });
+      }
+    }
+  };
+
+  if (!isGridView) {
+    return (
+      <div className="relative w-full py-4 px-10 select-none">
+        {/* Left Navigation Arrow */}
+        <button
+          onClick={slideLeft}
+          className="absolute left-0 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center shadow border border-slate-200 transition z-10 cursor-pointer"
+          aria-label="Previous products"
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+
+        {/* Right Navigation Arrow */}
+        <button
+          onClick={slideRight}
+          className="absolute right-0 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center shadow border border-slate-200 transition z-10 cursor-pointer"
+          aria-label="Next products"
+        >
+          <ChevronRight className="w-5 h-5" />
+        </button>
+
+        {/* Carousel Container */}
+        <motion.div
+          ref={productScrollRef}
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          className="flex flex-row gap-3 overflow-x-auto no-scrollbar scroll-smooth w-full pt-5 pb-5 px-4 -mx-4 flex-nowrap"
+        >
+          {products.map((product) => (
+            <motion.div
+              key={product._id}
+              variants={itemVariants}
+              className="flex-shrink-0 w-full sm:w-[calc((100%-12px)/2)] md:w-[calc((100%-24px)/3)] lg:w-[calc((100%-36px)/4)] xl:w-[calc((100%-48px)/5)] flex justify-center"
+            >
+              <ProductCard product={product} />
+            </motion.div>
+          ))}
+        </motion.div>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full py-8">
       <motion.div
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
+        className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3"
       >
         {products.map((product) => (
           <motion.div key={product._id} variants={itemVariants}>

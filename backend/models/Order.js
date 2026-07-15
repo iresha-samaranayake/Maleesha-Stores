@@ -36,6 +36,9 @@ const OrderSchema = new mongoose.Schema({
       type: String,
       required: [true, 'Customer phone number is required']
     },
+    email: {
+      type: String
+    },
     deliveryAddress: {
       type: String,
       required: function() {
@@ -59,6 +62,22 @@ const OrderSchema = new mongoose.Schema({
     required: true,
     enum: ['Pending', 'Processing', 'Out for Delivery', 'Completed', 'Cancelled'],
     default: 'Pending'
+  },
+  paymentMethod: {
+    type: String,
+    required: true,
+    enum: ['Pick up and pay', 'Pay Online', 'Pay On Delivery'],
+    default: 'Pick up and pay'
+  },
+  paymentStatus: {
+    type: String,
+    required: true,
+    enum: ['Pending', 'Paid', 'Failed'],
+    default: 'Pending'
+  },
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
   }
 }, {
   timestamps: true

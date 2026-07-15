@@ -28,7 +28,7 @@ export default function CustomerLayout() {
           const action = JSON.parse(intendedActionStr);
           if (action.type === 'ADD_TO_CART' && action.product) {
             addToCart(action.product);
-            showToast(`Added ${action.product.name} to cart!`, 'success');
+            // showToast(`Added ${action.product.name} to cart!`, 'success');
           } else if (action.type === 'UPLOAD_BILL') {
             setIsUploadBillOpen(true);
             showToast('Opening list uploader...', 'info');
@@ -89,12 +89,7 @@ export default function CustomerLayout() {
         onClose={() => setIsCartOpen(false)}
         onCheckout={() => {
           setIsCartOpen(false);
-          if (!user) {
-            showToast('Please log in or sign up to complete checkout', 'info');
-            navigate('/login');
-          } else {
-            setIsCheckoutOpen(true);
-          }
+          navigate('/customer/checkout');
         }}
       />
       <CheckoutForm isOpen={isCheckoutOpen} onClose={() => setIsCheckoutOpen(false)} />

@@ -2,17 +2,18 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { Plus, Trash2, X, Loader2, Layers } from 'lucide-react';
+import { Plus, Trash2, X, Loader2, Layers, Pencil } from 'lucide-react';
 
 export default function AdminCategories() {
   const { user } = useAuth();
   const { showToast } = useToast();
-  
+
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  
+
   const [showCategoryForm, setShowCategoryForm] = useState(false);
+  const [editingCategory, setEditingCategory] = useState(null);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState('');
@@ -21,7 +22,7 @@ export default function AdminCategories() {
 
   const getImageUrl = (url) => {
     if (!url) return '';
-    if (url.startsWith('http') || url.startsWith('data:')) return url;
+    if (url.startsWith('http') || url.startsWith('data:') || url.startsWith('/assets')) return url;
     return `http://localhost:5000${url}`;
   };
 
@@ -46,11 +47,26 @@ export default function AdminCategories() {
   }, [user]);
 
   const handleOpenAdd = () => {
+    setEditingCategory(null);
     setNewCategoryName('');
     setSelectedFile(null);
     setPreviewUrl('');
     if (fileInputRef.current) fileInputRef.current.value = '';
     setShowCategoryForm(true);
+  };
+
+  const handleOpenEdit = (category) => {
+    setEditingCategory(category);
+    setNewCategoryName(category.name);
+    setSelectedFile(null);
+    setPreviewUrl(category.image_url ? getImageUrl(category.image_url) : '');
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    setShowCategoryForm(true);
+  };
+
+  const handleCloseForm = () => {
+    setShowCategoryForm(false);
+    setEditingCategory(null);
   };
 
   const handleFileChange = (e) => {
@@ -70,14 +86,14 @@ export default function AdminCategories() {
     reader.readAsDataURL(file);
   };
 
-  const handleAddCategory = async (e) => {
+  const handleSubmitCategory = async (e) => {
     e.preventDefault();
     if (!newCategoryName) {
       showToast('Please enter category name', 'error');
       return;
     }
 
-    if (!selectedFile) {
+    if (!editingCategory && !selectedFile) {
       showToast('Please select a category image to upload', 'error');
       return;
     }
@@ -86,7 +102,9 @@ export default function AdminCategories() {
     try {
       const formData = new FormData();
       formData.append('name', newCategoryName);
-      formData.append('image', selectedFile);
+      if (selectedFile) {
+        formData.append('image', selectedFile);
+      }
 
       const config = {
         headers: {
@@ -95,13 +113,20 @@ export default function AdminCategories() {
         }
       };
 
-      const res = await axios.post('/api/categories', formData, config);
-      setCategories([...categories, res.data]);
+      if (editingCategory) {
+        const res = await axios.put(`/api/categories/${editingCategory._id}`, formData, config);
+        setCategories(categories.map(c => c._id === editingCategory._id ? res.data : c));
+        showToast('Category updated successfully', 'success');
+      } else {
+        const res = await axios.post('/api/categories', formData, config);
+        setCategories([...categories, res.data]);
+        showToast('Category created successfully', 'success');
+      }
       setShowCategoryForm(false);
-      showToast('Category created successfully', 'success');
+      setEditingCategory(null);
     } catch (err) {
-      console.error('Error creating category:', err);
-      showToast(err.response?.data?.message || 'Error adding category', 'error');
+      console.error('Error saving category:', err);
+      showToast(err.response?.data?.message || 'Error saving category', 'error');
     } finally {
       setSaving(false);
     }
@@ -126,7 +151,7 @@ export default function AdminCategories() {
 
   return (
     <div className="space-y-6 font-sans animate-in fade-in duration-300">
-      
+
       {/* Filters & Actions */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-2xl border border-slate-200/60 shadow-sm">
         <div className="flex-1 w-full relative">
@@ -168,7 +193,7 @@ export default function AdminCategories() {
                 {filteredCategories.length > 0 ? (
                   filteredCategories.map((item) => (
                     <tr key={item._id} className="hover:bg-slate-50/30 transition">
-                      
+
                       {/* Category details */}
                       <td className="p-4 pl-6 flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg border border-slate-200 overflow-hidden bg-slate-50 flex items-center justify-center shrink-0">
@@ -183,12 +208,12 @@ export default function AdminCategories() {
                           <p className="text-[10px] text-slate-400 mt-0.5">ID: {item._id}</p>
                         </div>
                       </td>
-                      
+
                       {/* Slug */}
                       <td className="p-4 font-mono text-xs text-slate-500">
                         {item.slug || item.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-')}
                       </td>
-                      
+
                       {/* Image path */}
                       <td className="p-4 font-mono text-xs text-slate-500">
                         {item.image_url ? (
@@ -201,7 +226,13 @@ export default function AdminCategories() {
                       </td>
 
                       {/* Actions */}
-                      <td className="p-4 text-center pr-6">
+                      <td className="p-4 text-center pr-6 flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => handleOpenEdit(item)}
+                          className="p-2 border border-slate-200 hover:border-emerald-200 rounded-xl hover:bg-emerald-50 text-slate-400 hover:text-emerald-600 transition cursor-pointer"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
                         <button
                           onClick={() => handleDeleteCategory(item._id)}
                           className="p-2 border border-slate-200 hover:border-red-200 rounded-xl hover:bg-red-50 text-slate-400 hover:text-red-600 transition cursor-pointer"
@@ -230,16 +261,18 @@ export default function AdminCategories() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/40 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl border border-slate-100 overflow-hidden flex flex-col">
             <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="text-base font-bold text-slate-900">Add New Category</h3>
+              <h3 className="text-base font-bold text-slate-900">
+                {editingCategory ? 'Edit Category' : 'Add New Category'}
+              </h3>
               <button
-                onClick={() => setShowCategoryForm(false)}
+                onClick={handleCloseForm}
                 className="p-1.5 hover:bg-slate-50 rounded-lg text-slate-400 hover:text-slate-600 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleAddCategory} className="p-6 space-y-4">
+            <form onSubmit={handleSubmitCategory} className="p-6 space-y-4">
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-400 uppercase">Category Name</label>
                 <input
@@ -257,12 +290,12 @@ export default function AdminCategories() {
                 <input
                   type="file"
                   accept="image/png, image/jpeg, image/jpg"
-                  required
+                  required={!editingCategory}
                   ref={fileInputRef}
                   onChange={handleFileChange}
                   className="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer"
                 />
-                
+
                 {previewUrl && (
                   <div className="mt-3 w-32 h-32 mx-auto border border-slate-200 rounded-xl bg-slate-50 overflow-hidden flex items-center justify-center p-1.5">
                     <img src={previewUrl} alt="Preview" className="w-full h-full object-contain" />
@@ -273,7 +306,7 @@ export default function AdminCategories() {
               <div className="pt-4 flex gap-3 border-t border-slate-100 mt-5">
                 <button
                   type="button"
-                  onClick={() => setShowCategoryForm(false)}
+                  onClick={handleCloseForm}
                   className="flex-1 py-3 border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-semibold rounded-xl active:scale-95 transition cursor-pointer"
                   disabled={saving}
                 >
@@ -285,7 +318,7 @@ export default function AdminCategories() {
                   disabled={saving}
                 >
                   {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-                  {saving ? 'Saving...' : 'Add Category'}
+                  {saving ? 'Saving...' : editingCategory ? 'Save Changes' : 'Add Category'}
                 </button>
               </div>
             </form>

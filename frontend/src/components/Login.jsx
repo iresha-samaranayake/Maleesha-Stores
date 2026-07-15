@@ -20,22 +20,10 @@ export default function Login() {
 
   useEffect(() => {
     if (!loading && user) {
-      const intendedAction = sessionStorage.getItem('intendedAction');
-      if (intendedAction) {
-        navigate('/', { replace: true });
-      } else {
-        navigate(user.role === 'admin' ? '/admin/dashboard' : '/customer/dashboard', { replace: true });
-      }
+      navigate(user.role === 'admin' ? '/admin' : '/customer/dashboard', { replace: true });
     }
   }, [user, loading, navigate]);
 
-  useEffect(() => {
-    const savedEmail = localStorage.getItem('rememberedEmail');
-    if (savedEmail) {
-      setEmail(savedEmail);
-      setRememberMe(true);
-    }
-  }, []);
 
   const validate = () => {
     const errors = {};
@@ -167,11 +155,14 @@ export default function Login() {
                   type="email"
                   required
                   value={email}
+                  readOnly
+                  onFocus={(e) => e.target.removeAttribute('readonly')}
                   onChange={(e) => {
                     setEmail(e.target.value);
                     if (validationErrors.email) setValidationErrors(prev => ({ ...prev, email: null }));
                   }}
                   placeholder="name@example.com"
+                  autoComplete="email"
                   className={`w-full pl-11 pr-4 py-3 bg-slate-950/40 border ${validationErrors.email ? 'border-red-500' : 'border-slate-800 hover:border-slate-700'
                     } rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all`}
                 />
@@ -198,11 +189,14 @@ export default function Login() {
                   type={showPassword ? 'text' : 'password'}
                   required
                   value={password}
+                  readOnly
+                  onFocus={(e) => e.target.removeAttribute('readonly')}
                   onChange={(e) => {
                     setPassword(e.target.value);
                     if (validationErrors.password) setValidationErrors(prev => ({ ...prev, password: null }));
                   }}
-                  placeholder="••••••••"
+                  placeholder="Enter your password"
+                  autoComplete="current-password"
                   className={`w-full pl-11 pr-11 py-3 bg-slate-950/40 border ${validationErrors.password ? 'border-red-500' : 'border-slate-800 hover:border-slate-700'
                     } rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all`}
                 />

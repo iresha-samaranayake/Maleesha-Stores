@@ -3,7 +3,7 @@ import axios from 'axios';
 
 const getImageUrl = (url) => {
   if (!url) return '';
-  if (url.startsWith('http') || url.startsWith('data:')) return url;
+  if (url.startsWith('http') || url.startsWith('data:') || url.startsWith('/assets')) return url;
   return `http://localhost:5000${url}`;
 };
 

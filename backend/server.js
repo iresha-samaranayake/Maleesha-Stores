@@ -44,6 +44,8 @@ app.use('/api/categories', require('./routes/categoryRoutes'));
 app.use('/api/products', require('./routes/productRoutes'));
 app.use('/api/orders', require('./routes/orderRoutes'));
 app.use('/api/bills', require('./routes/billRoutes'));
+app.use('/api/banners', require('./routes/bannerRoutes'));
+app.use('/api/cart', require('./routes/cartRoutes'));
 
 // Basic Route for test
 app.get('/api', (req, res) => {

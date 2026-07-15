@@ -36,6 +36,11 @@ const ProductSchema = new mongoose.Schema({
   image_url: {
     type: String,
     default: ''
+  },
+  unitMeasurement: {
+    type: String,
+    trim: true,
+    default: ''
   }
 }, {
   timestamps: true

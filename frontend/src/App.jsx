@@ -25,6 +25,7 @@ import CustomerOrders from './components/CustomerOrders';
 import CustomerCart from './components/CustomerCart';
 import CustomerCheckout from './components/CustomerCheckout';
 import ProfileSettings from './components/ProfileSettings';
+import PaymentGateway from './components/PaymentGateway';
 
 // Admin Pages
 import AdminDashboard from './components/AdminDashboard';
@@ -64,6 +65,9 @@ function MainAppContent() {
       {/* Public routes wrapped in CustomerLayout */}
       <Route element={<CustomerLayout />}>
         <Route path="/" element={<Homepage />} />
+        <Route path="/customer/cart" element={<CustomerCart />} />
+        <Route path="/customer/checkout" element={<CustomerCheckout />} />
+        <Route path="/checkout/payment-gateway" element={<PaymentGateway />} />
       </Route>
 
       {/* Guest/Auth routes wrapped in AuthLayout */}
@@ -78,8 +82,6 @@ function MainAppContent() {
           <Route path="/customer/dashboard" element={<CustomerDashboard />} />
           <Route path="/customer/profile" element={<ProfileSettings />} />
           <Route path="/customer/orders" element={<CustomerOrders />} />
-          <Route path="/customer/cart" element={<CustomerCart />} />
-          <Route path="/customer/checkout" element={<CustomerCheckout />} />
         </Route>
       </Route>
 
