@@ -3,9 +3,9 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { 
-  Truck, Store, ArrowRight, ChevronLeft, Loader2, CheckCircle, 
-  Package, Calendar, Phone, User, MapPin, Mail, Lock, CreditCard, ShieldCheck 
+import {
+  Truck, Store, ArrowRight, ChevronLeft, Loader2, CheckCircle,
+  Package, Calendar, Phone, User, MapPin, Mail, Lock, CreditCard, ShieldCheck
 } from 'lucide-react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -65,9 +65,9 @@ export default function CustomerCheckout() {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({ 
-      ...prev, 
-      [name]: type === 'checkbox' ? checked : value 
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
     }));
   };
 
@@ -182,11 +182,10 @@ export default function CustomerCheckout() {
           </div>
           <div className="flex justify-between border-b border-slate-100 pb-3">
             <span className="text-slate-400 font-semibold uppercase">Payment Status</span>
-            <span className={`font-bold px-2.5 py-0.5 rounded-full text-[10px] ${
-              orderSuccess.paymentStatus === 'Paid' 
-                ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' 
+            <span className={`font-bold px-2.5 py-0.5 rounded-full text-[10px] ${orderSuccess.paymentStatus === 'Paid'
+                ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
                 : 'bg-amber-50 text-amber-700 border border-amber-100'
-            }`}>
+              }`}>
               {orderSuccess.paymentStatus}
             </span>
           </div>
@@ -233,7 +232,7 @@ export default function CustomerCheckout() {
         {/* Left Side: Form Details */}
         <div className="lg:col-span-2 space-y-6">
           <form onSubmit={handleSubmit} className="bg-white border border-slate-100 rounded-[32px] p-6 md:p-8 shadow-sm space-y-8">
-            
+
             {/* Fulfillment Section */}
             <div className="space-y-4">
               <div className="flex items-center gap-2 pb-1 border-b border-slate-100">
@@ -247,8 +246,8 @@ export default function CustomerCheckout() {
                     type="button"
                     onClick={() => handleFulfillmentChange('pickup')}
                     className={`flex flex-col items-center gap-2 p-4 rounded-2xl border text-sm font-bold transition cursor-pointer ${formData.pickupType === 'pickup'
-                        ? 'border-emerald-600 bg-emerald-50/50 text-emerald-800 shadow-sm'
-                        : 'border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50/30'
+                      ? 'border-emerald-600 bg-emerald-50/50 text-emerald-800 shadow-sm'
+                      : 'border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50/30'
                       }`}
                   >
                     <Store className="w-5 h-5" />
@@ -258,8 +257,8 @@ export default function CustomerCheckout() {
                     type="button"
                     onClick={() => handleFulfillmentChange('delivery')}
                     className={`flex flex-col items-center gap-2 p-4 rounded-2xl border text-sm font-bold transition cursor-pointer ${formData.pickupType === 'delivery'
-                        ? 'border-emerald-600 bg-emerald-50/50 text-emerald-800 shadow-sm'
-                        : 'border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50/30'
+                      ? 'border-emerald-600 bg-emerald-50/50 text-emerald-800 shadow-sm'
+                      : 'border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50/30'
                       }`}
                   >
                     <Truck className="w-5 h-5" />
@@ -293,7 +292,7 @@ export default function CustomerCheckout() {
                 <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-emerald-50 text-emerald-600 text-xs font-black">2</span>
                 <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Sender Details</h2>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">First Name</label>
@@ -375,13 +374,12 @@ export default function CustomerCheckout() {
                   type="button"
                   disabled={formData.pickupType === 'delivery'}
                   onClick={() => setFormData(prev => ({ ...prev, paymentMethod: 'Pick up and pay' }))}
-                  className={`flex flex-col items-center justify-center text-center p-4 rounded-2xl border transition select-none ${
-                    formData.pickupType === 'delivery'
+                  className={`flex flex-col items-center justify-center text-center p-4 rounded-2xl border transition select-none ${formData.pickupType === 'delivery'
                       ? 'opacity-40 cursor-not-allowed border-slate-100 bg-slate-50/50 text-slate-300'
                       : formData.paymentMethod === 'Pick up and pay'
                         ? 'border-emerald-600 bg-emerald-50/50 text-emerald-800 font-bold shadow-sm cursor-pointer'
                         : 'border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50/30 cursor-pointer'
-                  }`}
+                    }`}
                 >
                   <Store className="w-6 h-6 mb-2 text-emerald-600" />
                   <span className="text-xs font-extrabold">Pick up and pay</span>
@@ -391,11 +389,10 @@ export default function CustomerCheckout() {
                 <button
                   type="button"
                   onClick={() => setFormData(prev => ({ ...prev, paymentMethod: 'Pay Online' }))}
-                  className={`flex flex-col items-center justify-center text-center p-4 rounded-2xl border transition cursor-pointer select-none ${
-                    formData.paymentMethod === 'Pay Online'
+                  className={`flex flex-col items-center justify-center text-center p-4 rounded-2xl border transition cursor-pointer select-none ${formData.paymentMethod === 'Pay Online'
                       ? 'border-emerald-600 bg-emerald-50/50 text-emerald-800 font-bold shadow-sm'
                       : 'border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50/30'
-                  }`}
+                    }`}
                 >
                   <CreditCard className="w-6 h-6 mb-2 text-emerald-600" />
                   <span className="text-xs font-extrabold">Pay Online</span>
@@ -406,13 +403,12 @@ export default function CustomerCheckout() {
                   type="button"
                   disabled={formData.pickupType !== 'delivery'}
                   onClick={() => setFormData(prev => ({ ...prev, paymentMethod: 'Pay On Delivery' }))}
-                  className={`flex flex-col items-center justify-center text-center p-4 rounded-2xl border transition select-none ${
-                    formData.pickupType !== 'delivery' 
-                      ? 'opacity-40 cursor-not-allowed border-slate-100 bg-slate-50/50 text-slate-300' 
+                  className={`flex flex-col items-center justify-center text-center p-4 rounded-2xl border transition select-none ${formData.pickupType !== 'delivery'
+                      ? 'opacity-40 cursor-not-allowed border-slate-100 bg-slate-50/50 text-slate-300'
                       : formData.paymentMethod === 'Pay On Delivery'
                         ? 'border-emerald-600 bg-emerald-50/50 text-emerald-800 font-bold shadow-sm cursor-pointer'
                         : 'border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50/30'
-                  }`}
+                    }`}
                 >
                   <Truck className="w-6 h-6 mb-2 text-emerald-600" />
                   <span className="text-xs font-extrabold">Pay On Delivery</span>
