@@ -516,7 +516,7 @@ export default function Homepage() {
                       >
                         <div
                           onClick={() => handleBannerClick(banner.target_link)}
-                          className="rounded-xl overflow-hidden relative aspect-[16/8] w-full shadow-sm border border-slate-200/50 cursor-pointer transform hover:-translate-y-1 hover:shadow-md transition-all duration-300 group"
+                          className="rounded-xl overflow-hidden relative aspect-[16/10] w-full shadow-sm border border-slate-200/50 cursor-pointer transform hover:-translate-y-1 hover:shadow-md transition-all duration-300 group"
                           style={{
                             background: hasImage
                               ? 'none'

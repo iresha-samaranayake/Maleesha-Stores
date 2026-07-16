@@ -238,7 +238,9 @@ export default function AdminBanners() {
                       <span className={`inline-flex px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${
                         banner.type === 'Main Carousel'
                           ? 'bg-purple-50 text-purple-700 border border-purple-100'
-                          : 'bg-blue-50 text-blue-700 border border-blue-100'
+                          : banner.type === 'Hot Deals'
+                            ? 'bg-rose-50 text-rose-700 border border-rose-100'
+                            : 'bg-blue-50 text-blue-700 border border-blue-100'
                       }`}>
                         {banner.type}
                       </span>
@@ -337,6 +339,7 @@ export default function AdminBanners() {
                 >
                   <option value="Main Carousel">Main Carousel (Large Top Slider)</option>
                   <option value="Small Promo">Small Promo (Grid Row Cards)</option>
+                  <option value="Hot Deals">Hot Deals (Discount Page Slider)</option>
                 </select>
               </div>
 
