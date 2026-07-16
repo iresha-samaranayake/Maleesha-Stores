@@ -20,7 +20,28 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('userInfo');
     localStorage.removeItem('maleesha_stores_guest_cart');
     localStorage.removeItem('maleesha_stores_cart');
+    localStorage.removeItem('wishlist');
+    window.dispatchEvent(new Event('storage'));
   };
+
+  useEffect(() => {
+    const fetchUserFavorites = async () => {
+      if (user && user.token) {
+        try {
+          const config = {
+            headers: { Authorization: `Bearer ${user.token}` }
+          };
+          const { data } = await axios.get('/api/auth/favorites', config);
+          const ids = data.map(item => typeof item === 'object' ? item._id : item);
+          localStorage.setItem('wishlist', JSON.stringify(ids));
+          window.dispatchEvent(new Event('storage'));
+        } catch (error) {
+          console.error('Failed to fetch user favorites:', error);
+        }
+      }
+    };
+    fetchUserFavorites();
+  }, [user]);
 
   useEffect(() => {
     const validateSession = async () => {

@@ -15,6 +15,10 @@ export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
 
   const showToast = useCallback((message, type = 'success', duration = 4000) => {
+    // Ignore success and info pop up messages per user request
+    if (type === 'success' || type === 'info') {
+      return;
+    }
     const id = Math.random().toString(36).substring(2, 9);
     
     setToasts((prev) => [...prev, { id, message, type, duration }]);
