@@ -166,6 +166,71 @@ const validateToken = async (req, res) => {
   }
 };
 
+// @desc    Get user's favorites
+// @route   GET /api/auth/favorites
+// @access  Private
+const getUserFavorites = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).populate('favorites');
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    res.json(user.favorites || []);
+  } catch (error) {
+    console.error('Error fetching favorites:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// @desc    Add product to user's favorites
+// @route   POST /api/auth/favorites
+// @access  Private
+const addToFavorites = async (req, res) => {
+  try {
+    const { productId } = req.body;
+    if (!productId) {
+      return res.status(400).json({ success: false, message: 'Product ID is required' });
+    }
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    if (!user.favorites) {
+      user.favorites = [];
+    }
+    const productStrId = productId.toString();
+    if (!user.favorites.some(id => id.toString() === productStrId)) {
+      user.favorites.push(productId);
+      await user.save();
+    }
+    res.json({ success: true, message: 'Added to favorites', favorites: user.favorites });
+  } catch (error) {
+    console.error('Error adding to favorites:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// @desc    Remove product from user's favorites
+// @route   DELETE /api/auth/favorites/:productId
+// @access  Private
+const removeFromFavorites = async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    if (user.favorites) {
+      user.favorites = user.favorites.filter(id => id.toString() !== productId);
+      await user.save();
+    }
+    res.json({ success: true, message: 'Removed from favorites', favorites: user.favorites });
+  } catch (error) {
+    console.error('Error removing from favorites:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
 module.exports = {
   loginUser,
   registerUser,
@@ -173,5 +238,8 @@ module.exports = {
   updateUserProfile,
   getUsers,
   validateToken,
+  getUserFavorites,
+  addToFavorites,
+  removeFromFavorites,
 };
 
