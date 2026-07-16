@@ -7,7 +7,7 @@ const BannerSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['Main Carousel', 'Small Promo'],
+    enum: ['Main Carousel', 'Small Promo', 'Hot Deals'],
     required: [true, 'Please specify the banner type']
   },
   target_link: {
