@@ -1,6 +1,7 @@
 import React, { useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Minus, Heart } from 'lucide-react';
+import axios from 'axios';
 import { CartContext } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
@@ -28,29 +29,56 @@ export default function ProductCard({ product }) {
   };
 
   useEffect(() => {
-    const savedWishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
-    setIsFavorite(savedWishlist.includes(product._id));
+    const updateFavStatus = () => {
+      const savedWishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
+      setIsFavorite(savedWishlist.includes(product._id));
+    };
+    updateFavStatus();
+    window.addEventListener('storage', updateFavStatus);
+    return () => window.removeEventListener('storage', updateFavStatus);
   }, [product._id]);
 
-  const toggleWishlist = (e) => {
+  const toggleWishlist = async (e) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!user) {
+    if (!user || !user.token) {
       showToast('Please log in to add items to your wishlist', 'info');
       navigate('/login');
       return;
     }
+    
     let savedWishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
-    if (savedWishlist.includes(product._id)) {
-      savedWishlist = savedWishlist.filter(id => id !== product._id);
-      setIsFavorite(false);
-      showToast(`${product.name} removed from favorites`, 'info');
+    const isCurrentlyFav = savedWishlist.includes(product._id);
+    
+    const config = {
+      headers: { Authorization: `Bearer ${user.token}` }
+    };
+    
+    if (isCurrentlyFav) {
+      try {
+        await axios.delete(`/api/auth/favorites/${product._id}`, config);
+        savedWishlist = savedWishlist.filter(id => id !== product._id);
+        setIsFavorite(false);
+        localStorage.setItem('wishlist', JSON.stringify(savedWishlist));
+        showToast(`${product.name} removed from favorites`, 'info');
+        window.dispatchEvent(new Event('storage'));
+      } catch (err) {
+        console.error('Failed to remove from favorites:', err);
+        showToast('Could not remove from favorites', 'error');
+      }
     } else {
-      savedWishlist.push(product._id);
-      setIsFavorite(true);
-      showToast(`${product.name} added to favorites!`, 'success');
+      try {
+        await axios.post('/api/auth/favorites', { productId: product._id }, config);
+        savedWishlist.push(product._id);
+        setIsFavorite(true);
+        localStorage.setItem('wishlist', JSON.stringify(savedWishlist));
+        showToast(`${product.name} added to favorites!`, 'success');
+        window.dispatchEvent(new Event('storage'));
+      } catch (err) {
+        console.error('Failed to add to favorites:', err);
+        showToast('Could not add to favorites', 'error');
+      }
     }
-    localStorage.setItem('wishlist', JSON.stringify(savedWishlist));
   };
 
   const handleIncrement = () => {
