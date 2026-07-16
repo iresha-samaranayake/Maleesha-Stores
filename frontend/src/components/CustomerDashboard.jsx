@@ -5,7 +5,7 @@ import { useToast } from '../context/ToastContext';
 import { useCart } from '../context/CartContext';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
 import {
-  Loader2, Truck, Clock, ShieldCheck, ChevronRight, TrendingUp,
+  Loader2, Truck, Clock, ShieldCheck, ChevronLeft, ChevronRight, TrendingUp,
   Menu, Apple, Leaf, Egg, CupSoda, Cookie, Package, Layers, Search,
   Sparkles, Gift, Trash2, Heart, Plus, ShoppingBag, Copy, Check, ArrowRight
 } from 'lucide-react';
@@ -65,6 +65,50 @@ const slides = [
   }
 ];
 
+const defaultSmallBanners = [
+  {
+    image_url: null,
+    title: 'Celebrate World Chocolate Day',
+    description: 'Get 25% Discount on premium chocolates and sweet treats.',
+    badge: '🍫 25% OFF',
+    buttonText: 'Shop Chocolates',
+    target_link: '#catalog',
+    gradient: 'linear-gradient(135deg, #7c2d12 0%, #451a03 100%)',
+    textColor: 'text-white'
+  },
+  {
+    image_url: null,
+    title: 'Clean & Fresh Essentials',
+    description: 'Up to 30% Off on selected personal care and household items.',
+    badge: '🧴 UP TO 30% OFF',
+    buttonText: 'Shop Unilever',
+    target_link: '#catalog',
+    gradient: 'linear-gradient(135deg, #1d4ed8 0%, #1e3a8a 100%)',
+    textColor: 'text-white'
+  },
+  {
+    image_url: null,
+    title: 'Good Knight Mosquito Protection',
+    description: '30% Off on active defense vaporizers and insect sprays.',
+    badge: '🦟 30% OFF',
+    buttonText: 'Shop Defense',
+    target_link: '#catalog',
+    gradient: 'linear-gradient(135deg, #b91c1c 0%, #7f1d1d 100%)',
+    textColor: 'text-white'
+  },
+  {
+    image_url: null,
+    title: 'Super Absorbent Core Venus',
+    description: 'Special discounts on Venus baby care and wellness lines.',
+    badge: '👶 BABY CARE SALE',
+    buttonText: 'Browse Venus',
+    target_link: '#catalog',
+    gradient: 'linear-gradient(135deg, #0d9488 0%, #115e59 100%)',
+    textColor: 'text-white'
+  }
+];
+
+
 export default function CustomerDashboard() {
   const { user } = useAuth();
   const { showToast } = useToast();
@@ -72,6 +116,7 @@ export default function CustomerDashboard() {
 
   const location = useLocation();
   const catalogRef = useRef(null);
+  const categoryScrollRef = useRef(null);
 
   const navigate = useNavigate();
 
@@ -146,19 +191,66 @@ export default function CustomerDashboard() {
   };
 
   // Selection/Search states
-  const [selectedCategory, setSelectedCategory] = useState(null);
-  const [searchQuery, setSearchQuery] = useState('');
+  const searchParams = new URLSearchParams(location.search);
+  const selectedCategory = searchParams.get('category') || null;
+  const urlSearchQuery = searchParams.get('q') || '';
+  const [searchQuery, setSearchQuery] = useState(urlSearchQuery);
   const [wishlistProducts, setWishlistProducts] = useState([]);
   const [copiedCoupon, setCopiedCoupon] = useState(null);
+  const [isGridView, setIsGridView] = useState(false);
 
-  // Sync scroll on catalog if navigated with scroll parameter
+  // Small Promo Banners state & refs
+  const smallTrackRef = useRef(null);
+  const [smallBannerIndex, setSmallBannerIndex] = useState(0);
+  const wishlistRef = useRef(null);
+
+  // Sync searchQuery state with URL changes
   useEffect(() => {
-    if ((location.search.includes('scroll=catalog') || location.search.includes('tab=shop')) && catalogRef.current) {
+    const params = new URLSearchParams(location.search);
+    setSearchQuery(params.get('q') || '');
+  }, [location.search]);
+
+  // Sync scroll on catalog if navigated with scroll parameter or category/search changed
+  useEffect(() => {
+    if (selectedCategory || searchQuery || location.search.includes('scroll=catalog') || location.search.includes('tab=shop')) {
+      setTimeout(() => {
+        catalogRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 150);
+    }
+  }, [selectedCategory, location.search]);
+
+  // Scroll to catalog if tab=wishlist is active (since favorites are displayed in catalog)
+  useEffect(() => {
+    if (location.search.includes('tab=wishlist') && catalogRef.current) {
       setTimeout(() => {
         catalogRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 150);
     }
-  }, [location]);
+  }, [location.search]);
+
+  // Handle local category changes
+  const handleCategoryClick = (catId) => {
+    const params = new URLSearchParams(location.search);
+    if (catId) {
+      params.set('category', catId);
+    } else {
+      params.delete('category');
+    }
+    navigate(`/customer/dashboard?${params.toString()}`);
+  };
+
+  // Handle search changes
+  const handleSearchChange = (e) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+    const params = new URLSearchParams(location.search);
+    if (value.trim()) {
+      params.set('q', value);
+    } else {
+      params.delete('q');
+    }
+    navigate(`/customer/dashboard?${params.toString()}`, { replace: true });
+  };
 
   // Fetch categories
   const fetchCategories = async () => {
@@ -212,14 +304,47 @@ export default function CustomerDashboard() {
     fetchWishlistProducts();
   }, [user]);
 
-  // Handle wishlist updates directly from window changes
   useEffect(() => {
-    const handleStorageChange = () => {
+    const handleStorage = () => {
       fetchWishlistProducts();
     };
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, [user]);
+
+  // Filter and configure small promotional banners
+  const smallBanners = banners.filter(b => b.type === 'Small Promo');
+  const displaySmallBanners = smallBanners.length > 0 ? smallBanners : defaultSmallBanners;
+  const smallBannersLoop = [...displaySmallBanners, ...displaySmallBanners];
+
+  // Auto swapping small promo banners — one card at a time, every 3 seconds
+  useEffect(() => {
+    if (displaySmallBanners.length === 0) return;
+    const timer = setInterval(() => {
+      setSmallBannerIndex((prev) => prev + 1);
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [displaySmallBanners.length]);
+
+  // Snap small banners back when reaching the duplicate set
+  useEffect(() => {
+    if (smallBannerIndex >= displaySmallBanners.length) {
+      const timeout = setTimeout(() => {
+        if (smallTrackRef.current) {
+          smallTrackRef.current.style.transition = 'none';
+        }
+        setSmallBannerIndex(smallBannerIndex - displaySmallBanners.length);
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            if (smallTrackRef.current) {
+              smallTrackRef.current.style.transition = '';
+            }
+          });
+        });
+      }, 550);
+      return () => clearTimeout(timeout);
+    }
+  }, [smallBannerIndex, displaySmallBanners.length]);
 
   const activeOrder = orders.find(o => ['Pending', 'Processing', 'Out for Delivery'].includes(o.status));
   const getTimelineStep = (s) => ({ Pending: 0, Processing: 1, 'Out for Delivery': 2, Completed: 3 }[s] ?? 0);
@@ -235,160 +360,183 @@ export default function CustomerDashboard() {
 
   return (
     <div className="flex-1 flex flex-col font-sans bg-[#fbfbfa] pb-16">
-      {/* ── Editorial Slider Hero Banner (Full-Width Edge-to-Edge) ── */}
-      <div className="relative overflow-hidden w-full min-h-[240px] sm:min-h-[300px] md:min-h-[350px] lg:min-h-[390px] shadow-sm flex bg-white">
 
-          <AnimatePresence>
-            {dashboardSlides.length > 0 && dashboardSlides[activeSlideIndex] && (
-              <motion.div
-                key={activeSlideIndex}
-                initial={{ x: '100%', opacity: 0.9 }}
-                animate={{ x: 0, opacity: 1 }}
-                exit={{ x: '-100%', opacity: 0.9 }}
-                transition={{ duration: 1.0, ease: 'easeInOut' }}
-                className={`absolute inset-0 p-8 sm:p-12 md:p-16 flex flex-col justify-center text-left bg-cover bg-center ${
-                  dashboardSlides[activeSlideIndex]?.target_link ? 'cursor-pointer' : ''
-                }`}
-                style={{ backgroundImage: `url(${getImageUrl(dashboardSlides[activeSlideIndex]?.image)})` }}
-                onClick={() => {
-                  if (dashboardSlides[activeSlideIndex]?.target_link) {
-                    handleBannerClick(dashboardSlides[activeSlideIndex]?.target_link);
-                  }
+      {/* ── Secondary Promotional Banners (Full-Width) ── */}
+      {displaySmallBanners.length > 0 && (() => {
+        const total = smallBannersLoop.length;
+        const trackWidthPct = (total / 3) * 100; // 3 visible cards instead of 4 to make them larger
+        const cardWidthPct = 100 / total;
+        const shiftPct = smallBannerIndex * cardWidthPct;
+        return (
+          <div className="relative w-full py-4 bg-white border-b border-slate-100 overflow-hidden">
+            {/* Left Arrow */}
+            <button
+              onClick={() => setSmallBannerIndex((prev) => (prev <= 0 ? displaySmallBanners.length - 1 : prev - 1))}
+              className="absolute left-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/95 hover:bg-white text-slate-700 flex items-center justify-center border border-slate-200 shadow-md cursor-pointer z-10 transition hover:scale-105 active:scale-95"
+              aria-label="Previous banner"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+
+            {/* Right Arrow */}
+            <button
+              onClick={() => setSmallBannerIndex((prev) => prev + 1)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/95 hover:bg-white text-slate-700 flex items-center justify-center border border-slate-200 shadow-md cursor-pointer z-10 transition hover:scale-105 active:scale-95"
+              aria-label="Next banner"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+
+            {/* Sliding Track */}
+            <div className="overflow-hidden mx-16">
+              <div
+                ref={smallTrackRef}
+                className="flex transition-transform duration-500 ease-in-out"
+                style={{
+                  width: `${trackWidthPct}%`,
+                  transform: `translateX(-${shiftPct}%)`,
                 }}
               >
-                {/* Dark overlay for readability */}
-                {!dashboardSlides[activeSlideIndex]?.is_db && (
-                  <div className="absolute inset-0 bg-gradient-to-r from-slate-950/80 via-slate-950/35 to-transparent z-0" />
-                )}
-
-                {/* Content panel */}
-                {!dashboardSlides[activeSlideIndex]?.is_db && (
-                  <div className="space-y-6 text-white max-w-xl text-left z-10">
-
-                    {/* Badge */}
-                    {dashboardSlides[activeSlideIndex]?.badge && (
-                      <div>
-                        <span className="inline-flex items-center gap-1.5 px-4.5 py-1.5 rounded-full bg-white/15 border border-white/10 text-white text-[10px] font-black uppercase tracking-wider backdrop-blur-sm">
-                          ✳ {dashboardSlides[activeSlideIndex].badge}
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Title */}
-                    {dashboardSlides[activeSlideIndex]?.title && (
-                      <h1 className="text-3xl sm:text-4xl md:text-5xl font-black leading-tight tracking-tight text-white drop-shadow-sm">
-                        {dashboardSlides[activeSlideIndex].title}
-                      </h1>
-                    )}
-
-                    {/* Description */}
-                    {dashboardSlides[activeSlideIndex]?.description && (
-                      <p className="text-xs sm:text-sm text-white/80 leading-relaxed max-w-md drop-shadow-sm">
-                        {dashboardSlides[activeSlideIndex].description}
-                      </p>
-                    )}
-
-                    {/* Button */}
-                    <div className="pt-2">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          catalogRef.current?.scrollIntoView({ behavior: 'smooth' });
+                {smallBannersLoop.map((banner, index) => {
+                  const hasImage = !!banner.image_url;
+                  return (
+                    <div
+                      key={`sb-${index}`}
+                      className="px-3 flex-shrink-0"
+                      style={{ width: `${cardWidthPct}%` }}
+                    >
+                      <div
+                        onClick={() => handleBannerClick(banner.target_link)}
+                        className="rounded-2xl overflow-hidden relative aspect-[16/8.5] w-full shadow-md border border-slate-200/50 cursor-pointer transform hover:-translate-y-1 hover:shadow-lg transition-all duration-300 group"
+                        style={{
+                          background: hasImage
+                            ? 'none'
+                            : (banner.gradient || 'linear-gradient(135deg, #10b981 0%, #059669 100%)'),
                         }}
-                        className="px-7 py-3.5 bg-white text-slate-900 hover:bg-slate-100 rounded-xl text-xs font-black uppercase tracking-widest shadow-md transition active:scale-95 cursor-pointer inline-flex items-center gap-2"
                       >
-                        <ShoppingBag className="w-4 h-4 text-emerald-600" />
-                        {dashboardSlides[activeSlideIndex]?.buttonText || 'Shop Now'}
-                      </button>
+                        {hasImage && (
+                          <img
+                            src={getImageUrl(banner.image_url)}
+                            alt="Promo Banner"
+                            className="absolute inset-0 w-full h-full object-fill group-hover:scale-105 transition-transform duration-500"
+                          />
+                        )}
+                        {!hasImage && (
+                          <div className="absolute inset-0 flex flex-col justify-between p-6 z-10">
+                            <div className="space-y-2 text-left">
+                              <span className="text-[10px] bg-white/20 border border-white/10 text-white px-2.5 py-0.5 rounded font-black uppercase tracking-wider">
+                                {banner.badge || 'PROMO'}
+                              </span>
+                              <h4 className="text-sm sm:text-base font-black text-white pt-1 leading-snug drop-shadow-sm line-clamp-1">
+                                {banner.title}
+                              </h4>
+                              <p className="text-[11px] text-white/80 leading-normal line-clamp-2 font-medium">
+                                {banner.description}
+                              </p>
+                            </div>
+                            <span className="text-[11px] font-black text-white group-hover:underline flex items-center gap-1.5">
+                              {banner.buttonText || 'Shop Now'} <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-
-                  </div>
-                )}
-
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Pagination Dots at bottom-left */}
-          {dashboardSlides.length > 1 && (
-            <div className="absolute bottom-6 left-8 sm:left-12 md:left-16 z-20 flex items-center gap-2.5">
-              {dashboardSlides.map((_, idx) => (
-                <button
-                  key={idx}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setCurrentImageIndex(idx);
-                  }}
-                  className={`h-2.5 rounded-full transition-all duration-300 cursor-pointer ${activeSlideIndex === idx
-                    ? 'w-7 bg-amber-400'
-                    : 'w-2.5 bg-white/35 hover:bg-white/50'
-                    }`}
-                />
-              ))}
+                  );
+                })}
+              </div>
             </div>
-          )}
+          </div>
+        );
+      })()}
 
-        </div>
+      <div className="max-w-[1200px] w-full mx-auto px-4 sm:px-6 lg:px-8 mt-8 flex-1 flex flex-col gap-10">
 
-        <div className="max-w-[1200px] w-full mx-auto px-4 sm:px-6 lg:px-8 mt-8 flex-1 flex flex-col gap-10">
-
-        {/* ── Circular Categories Selector under Banner ── */}
-        <div className="space-y-4">
-          <h3 className="text-subhead text-slate-800 text-center font-bold">Popular Departments</h3>
+        {/* ── Category Section (Slider Carousel) ── */}
+        <div className="space-y-6">
+          {/* Centered Dark Banner for Category Section Header */}
+          <div className="w-full bg-slate-900 rounded-2xl py-4 px-4 text-center shadow-md relative overflow-hidden">
+            <h3 className="text-xl md:text-2xl font-black text-white uppercase tracking-wider">
+              Shop by Category
+            </h3>
+          </div>
 
           {loadingCategories ? (
             <div className="flex items-center justify-center gap-2 py-6">
               <Loader2 className="w-5 h-5 animate-spin text-emerald-600" />
-              <span className="text-caption text-slate-400 font-semibold">Loading departments...</span>
+              <span className="text-xs text-slate-400 font-bold">Loading shelves...</span>
             </div>
           ) : (
-            <div className="flex justify-center gap-6 sm:gap-10 overflow-x-auto py-4 no-scrollbar custom-scrollbar">
-              {/* All Departments Circle */}
+            <div className="relative w-full px-10">
+              {/* Left Navigation Arrow */}
               <button
-                onClick={() => { setSelectedCategory(null); }}
-                className="flex flex-col items-center gap-2 cursor-pointer group shrink-0"
+                onClick={() => categoryScrollRef.current?.scrollBy({ left: -240, behavior: 'smooth' })}
+                className="absolute left-0 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center shadow border border-slate-200 transition z-10 cursor-pointer"
+                aria-label="Previous categories"
               >
-                <div className={`w-16 h-16 rounded-[12px] flex items-center justify-center border transition-all duration-300 overflow-hidden ${selectedCategory === null
-                  ? 'bg-slate-50 border-2 border-blue-950 scale-105 shadow-md'
-                  : 'bg-white border border-blue-950/20 hover:border-blue-950/60 hover:scale-105 shadow-sm'
-                  }`}>
-                  <span className="text-2xl select-none">🍏</span>
-                </div>
-                <span className={`text-[10px] sm:text-[11px] font-bold transition-colors uppercase tracking-wider ${selectedCategory === null ? 'text-slate-855' : 'text-slate-600 group-hover:text-slate-800'}`}>
-                  All Items
-                </span>
+                <ChevronLeft className="w-5 h-5" />
               </button>
 
-              {/* Individual Category Circles */}
-              {categories.map((cat) => {
-                const isSelected = selectedCategory === cat._id;
-                const details = getCategoryDetails(cat.name);
-                return (
-                  <button
-                    key={cat._id}
-                    onClick={() => { setSelectedCategory(cat._id); }}
-                    className="flex flex-col items-center gap-2 cursor-pointer group shrink-0"
-                  >
-                    <div className={`w-16 h-16 rounded-[12px] flex items-center justify-center border transition-all duration-300 overflow-hidden ${isSelected
-                      ? 'bg-slate-50 border-2 border-blue-950 scale-105 shadow-md'
-                      : 'bg-white border border-blue-950/20 hover:border-blue-950/60 hover:scale-105 shadow-sm'
-                      }`}>
-                      {cat.image_url ? (
-                        <img
-                          src={cat.image_url.startsWith('http') ? cat.image_url : `http://localhost:5000${cat.image_url}`}
-                          alt={cat.name}
-                          className="w-full h-full object-contain p-1.5 rounded-[12px]"
-                        />
-                      ) : (
-                        <span className="text-2xl select-none">{details.emoji}</span>
-                      )}
-                    </div>
-                    <span className={`text-[10px] sm:text-[11px] font-bold transition-colors uppercase tracking-wider ${isSelected ? 'text-slate-855' : 'text-slate-600 group-hover:text-slate-800'}`}>
-                      {cat.name}
-                    </span>
-                  </button>
-                );
-              })}
+              {/* Right Navigation Arrow */}
+              <button
+                onClick={() => categoryScrollRef.current?.scrollBy({ left: 240, behavior: 'smooth' })}
+                className="absolute right-0 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center shadow border border-slate-200 transition z-10 cursor-pointer"
+                aria-label="Next categories"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+
+              {/* Category Carousel Slider Track */}
+              <div
+                ref={categoryScrollRef}
+                className="flex flex-row gap-6 overflow-x-auto no-scrollbar scroll-smooth py-2 px-1 w-full flex-nowrap"
+              >
+                {/* All Categories Item */}
+                <button
+                  onClick={() => { handleCategoryClick(null); }}
+                  className="flex flex-col items-center gap-2 cursor-pointer group flex-shrink-0 bg-transparent border-none outline-none"
+                >
+                  <div className={`w-[110px] h-[110px] rounded-[18px] flex items-center justify-center border transition-all duration-300 overflow-hidden ${selectedCategory === null
+                    ? 'bg-slate-50 border-2 border-slate-900 scale-105 shadow-md'
+                    : 'bg-white border border-slate-200 hover:border-slate-400 hover:scale-105 shadow-sm'
+                    }`}>
+                    <span className="text-5xl select-none">🍏</span>
+                  </div>
+                  <span className="text-[10px] sm:text-[11px] font-bold text-slate-655 group-hover:text-slate-850 text-center leading-snug uppercase tracking-wide">
+                    All Items
+                  </span>
+                </button>
+
+                {/* Individual Category Items */}
+                {categories.map((cat) => {
+                  const isSelected = selectedCategory === cat._id;
+                  const details = getCategoryDetails(cat.name);
+                  return (
+                    <button
+                      key={cat._id}
+                      onClick={() => { handleCategoryClick(cat._id); }}
+                      className="flex flex-col items-center gap-2 cursor-pointer group flex-shrink-0 bg-transparent border-none outline-none"
+                    >
+                      <div className={`w-[110px] h-[110px] rounded-[18px] flex items-center justify-center border transition-all duration-300 overflow-hidden ${isSelected
+                        ? 'bg-slate-50 border-2 border-slate-900 scale-105 shadow-md'
+                        : 'bg-white border border-slate-200 hover:border-slate-400 hover:scale-105 shadow-sm'
+                        }`}>
+                        {cat.image_url ? (
+                          <img
+                            src={cat.image_url.startsWith('http') ? cat.image_url : `http://localhost:5000${cat.image_url}`}
+                            alt={cat.name}
+                            className="w-full h-full object-contain p-1.5 rounded-[12px]"
+                          />
+                        ) : (
+                          <span className="text-5xl select-none">{details.emoji}</span>
+                        )}
+                      </div>
+                      <span className="text-[10px] sm:text-[11px] font-bold text-slate-655 group-hover:text-slate-850 text-center leading-snug uppercase tracking-wide">
+                        {cat.name}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>
@@ -397,9 +545,9 @@ export default function CustomerDashboard() {
         <motion.div
           variants={containerVariants}
           initial="hidden" animate="visible"
-          className="grid grid-cols-1 gap-6"
+          className="grid grid-cols-1 md:grid-cols-2 gap-6"
         >
-          {/* Card 3: Fulfillment / Active Order Promo Card */}
+          {/* Card 1: Fulfillment / Active Order Promo Card */}
           <motion.div
             variants={itemVariants}
             className="rounded-[24px] p-6 text-slate-800 bg-[#fafbfe] border border-blue-200/60 relative overflow-hidden flex flex-col justify-between min-h-[180px] shadow-sm card-hover-lift"
@@ -422,6 +570,57 @@ export default function CustomerDashboard() {
               >
                 View Bills
               </Link>
+            </div>
+          </motion.div>
+
+          {/* Card 2: Recent Purchase Receipts */}
+          <motion.div
+            variants={itemVariants}
+            className="rounded-[24px] text-slate-800 bg-white border border-slate-150 flex flex-col justify-between min-h-[180px] shadow-sm card-hover-lift overflow-hidden"
+          >
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-[#fafbfe]">
+              <div>
+                <h3 className="text-body font-bold text-slate-900">Recent Purchase Receipts</h3>
+                <p className="text-micro text-slate-400 mt-0.5">Overview of your last completed orders</p>
+              </div>
+              <Link to="/customer/orders" className="text-caption font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-0.5 transition-smooth">
+                View All <ChevronRight className="w-4 h-4" />
+              </Link>
+            </div>
+
+            <div className="flex-1 overflow-y-auto no-scrollbar max-h-[120px]">
+              {loadingOrders ? (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="w-5 h-5 animate-spin text-emerald-500" />
+                </div>
+              ) : orders.length === 0 ? (
+                <div className="p-6 text-center text-caption text-slate-400 font-medium">
+                  No purchase history tracked yet.
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-50">
+                  {orders.slice(0, 2).map((order) => (
+                    <div key={order._id} className="p-3 flex justify-between items-center gap-2 hover:bg-slate-50/20 transition-smooth">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="flex -space-x-1.5 shrink-0">
+                          {order.items.slice(0, 2).map((item, i) => (
+                            <div key={i} className="w-7 h-7 rounded-lg bg-emerald-50 border border-white flex items-center justify-center text-[8px] text-emerald-700 font-extrabold overflow-hidden shadow-xs">
+                              {item.name?.slice(0, 2)}
+                            </div>
+                          ))}
+                        </div>
+                        <div className="min-w-0 leading-none">
+                          <span className="text-caption font-bold text-slate-800 block truncate">Order #{order._id.slice(-6).toUpperCase()}</span>
+                          <span className="text-[10px] text-slate-450 mt-0.5 block">{new Date(order.createdAt).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className="text-caption font-extrabold text-slate-900">Rs. {order.totalPrice.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </motion.div>
         </motion.div>
@@ -457,17 +656,17 @@ export default function CustomerDashboard() {
               <div className="relative z-10 flex justify-between items-center text-center">
                 {(activeOrder.customerDetails?.pickupType === 'pickup'
                   ? [
-                      { label: 'Placed', icon: ShoppingBag },
-                      { label: 'Processing', icon: Package },
-                      { label: 'Ready for Pickup', icon: Truck },
-                      { label: 'Collected', icon: Check }
-                    ]
+                    { label: 'Placed', icon: ShoppingBag },
+                    { label: 'Processing', icon: Package },
+                    { label: 'Ready for Pickup', icon: Truck },
+                    { label: 'Collected', icon: Check }
+                  ]
                   : [
-                      { label: 'Placed', icon: ShoppingBag },
-                      { label: 'Packaged', icon: Package },
-                      { label: 'Shipped', icon: Truck },
-                      { label: 'Arrived', icon: Check }
-                    ]
+                    { label: 'Placed', icon: ShoppingBag },
+                    { label: 'Packaged', icon: Package },
+                    { label: 'Shipped', icon: Truck },
+                    { label: 'Arrived', icon: Check }
+                  ]
                 ).map((step, idx) => {
                   const isActive = getTimelineStep(activeOrder.status) >= idx;
                   const isCurrent = getTimelineStep(activeOrder.status) === idx;
@@ -494,130 +693,48 @@ export default function CustomerDashboard() {
           </motion.div>
         )}
 
-        {/* ── Favorite Items Row ──────────────────────────── */}
-        {wishlistProducts.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}
-            className="space-y-4"
-          >
-            <h3 className="text-subhead text-slate-800 flex items-center gap-2 font-bold">
-              <Heart className="w-4.5 h-4.5 text-red-500 fill-red-500" />
-              Your Favorites
-            </h3>
-            <div className="flex gap-4 overflow-x-auto pb-4 pt-1 no-scrollbar custom-scrollbar">
-              {wishlistProducts.map((product) => (
-                <div key={product._id} className="w-48 bg-white rounded-2xl border border-slate-100 p-3 shrink-0 card-hover-lift shadow-sm relative">
-                  <div className="aspect-square bg-slate-50 overflow-hidden rounded-xl">
-                    {product.image_url ? (
-                      <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-emerald-50 to-teal-50 flex items-center justify-center text-xl">🥬</div>
-                    )}
-                  </div>
-                  <div className="mt-2.5 space-y-1">
-                    <h4 className="text-caption font-bold text-slate-800 truncate">{product.name}</h4>
-                    <p className="text-micro text-slate-400 normal-case tracking-normal font-semibold">{product.unit}</p>
-                    <div className="flex justify-between items-center pt-1.5">
-                      <span className="text-caption font-extrabold text-emerald-800">Rs. {product.price}</span>
-                      <button
-                        onClick={() => { addToCart(product); }}
-                        className="w-6.5 h-6.5 flex items-center justify-center bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition-smooth cursor-pointer"
-                      >
-                        <Plus className="w-3 h-3" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </motion.div>
-        )}
-
         {/* ── Main Catalog Grid ───────────────────────────── */}
         <div ref={catalogRef} className="space-y-6 pt-4 border-t border-slate-200/60">
 
-          {/* Search Header */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+          {/* Distinct Product Section Banner */}
+          <div className="w-full bg-[#064e3b] rounded-2xl py-6 px-4 text-center shadow-md relative overflow-hidden">
+            <h2 className="text-xl md:text-2xl font-black text-white uppercase tracking-wider relative z-10">
+              {location.search.includes('tab=wishlist')
+                ? 'Your Favorites'
+                : selectedCategory
+                  ? categories.find(c => c._id === selectedCategory)?.name || 'Category Products'
+                  : searchQuery
+                    ? `Search: "${searchQuery}"`
+                    : 'All Products'}
+            </h2>
+          </div>
+
+          {/* Controls Row (View More and Clear Filters) */}
+          <div className="flex justify-between items-center gap-4 py-2 px-1">
             <div>
-              <h2 className="text-subhead text-slate-900 font-bold">Explore Our Store</h2>
-              <p className="text-caption text-slate-400 mt-0.5">Fresh groceries delivered straight to your home</p>
+              {/* Clear filters trigger if active */}
+              {(selectedCategory || searchQuery || location.search.includes('tab=wishlist')) && (
+                <button
+                  onClick={() => navigate('/customer/dashboard')}
+                  className="text-xs text-emerald-700 hover:text-emerald-800 font-bold border border-emerald-200 hover:border-emerald-300 px-3.5 py-1.5 rounded-xl bg-emerald-50/50 transition cursor-pointer"
+                >
+                  Clear all filters
+                </button>
+              )}
             </div>
-            <div className="w-full sm:w-80 relative">
-              <Search className="absolute left-3.5 top-3.5 text-slate-400 w-4 h-4 pointer-events-none" />
-              <input
-                type="text"
-                placeholder="Search fresh groceries..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-body focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 transition-smooth"
-              />
-            </div>
+
+            {/* Green View More Button positioned on the right */}
+            <button
+              onClick={() => setIsGridView(!isGridView)}
+              className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold uppercase tracking-wider rounded-xl transition duration-150 active:scale-95 cursor-pointer shadow-sm"
+            >
+              {isGridView ? 'View Slider' : 'View More'}
+            </button>
           </div>
 
           {/* Catalog grid */}
-          <ProductGrid selectedCategory={selectedCategory} searchQuery={searchQuery} />
+          <ProductGrid selectedCategory={selectedCategory} searchQuery={searchQuery} isGridView={isGridView} showFavoritesOnly={location.search.includes('tab=wishlist')} />
         </div>
-
-        {/* ── Recent Purchase History ─────────────────────── */}
-        <div className="bg-white rounded-[24px] border border-slate-100 overflow-hidden shadow-sm">
-          <div className="px-6 py-5 border-b border-slate-100 flex justify-between items-center">
-            <div>
-              <h3 className="text-body font-bold text-slate-900">Recent Purchase Receipts</h3>
-              <p className="text-caption text-slate-400 mt-0.5">Overview of your last completed orders</p>
-            </div>
-            <Link to="/customer/orders" className="text-caption font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-0.5 transition-smooth">
-              View All <ChevronRight className="w-4 h-4" />
-            </Link>
-          </div>
-
-          {loadingOrders ? (
-            <div className="flex items-center justify-center py-10">
-              <Loader2 className="w-6 h-6 animate-spin text-emerald-500" />
-            </div>
-          ) : orders.length === 0 ? (
-            <div className="p-10 text-center text-caption text-slate-400 font-medium">
-              No purchase history tracked yet.
-            </div>
-          ) : (
-            <div className="divide-y divide-slate-50">
-              {orders.slice(0, 3).map((order) => (
-                <div key={order._id} className="p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:bg-slate-50/20 transition-smooth">
-                  <div className="flex items-center gap-3">
-                    <div className="flex -space-x-2 shrink-0">
-                      {order.items.slice(0, 3).map((item, i) => (
-                        <div key={i} className="w-9 h-9 rounded-xl bg-emerald-50 border-2 border-white flex items-center justify-center text-micro text-emerald-700 font-extrabold overflow-hidden shadow-sm">
-                          {item.name?.slice(0, 2)}
-                        </div>
-                      ))}
-                      {order.items.length > 3 && (
-                        <div className="w-9 h-9 rounded-xl bg-slate-100 border-2 border-white flex items-center justify-center text-micro text-slate-500 font-bold shadow-sm">
-                          +{order.items.length - 3}
-                        </div>
-                      )}
-                    </div>
-                    <div>
-                      <span className="text-body font-bold text-slate-800">Order #{order._id.slice(-6).toUpperCase()}</span>
-                      <p className="text-caption text-slate-400">
-                        {order.items.length} items · {new Date(order.createdAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <span className="text-body font-extrabold text-slate-900">Rs. {order.totalPrice.toLocaleString()}</span>
-                    <span className={`text-micro px-2 py-0.5 rounded-lg border ${order.status === 'Completed'
-                      ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
-                      : 'bg-amber-50 text-amber-700 border-amber-100'
-                      }`}>
-                      {order.status}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
       </div>
     </div>
   );
