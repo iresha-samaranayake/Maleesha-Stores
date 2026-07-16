@@ -18,6 +18,7 @@ import Register from './components/Register';
 
 // Public Homepage
 import Homepage from './components/Homepage';
+import HotDeals from './components/HotDeals';
 
 // Customer Pages
 import CustomerDashboard from './components/CustomerDashboard';
@@ -65,6 +66,7 @@ function MainAppContent() {
       {/* Public routes wrapped in CustomerLayout */}
       <Route element={<CustomerLayout />}>
         <Route path="/" element={<Homepage />} />
+        <Route path="/hot-deals" element={<HotDeals />} />
         <Route path="/customer/cart" element={<CustomerCart />} />
         <Route path="/customer/checkout" element={<CustomerCheckout />} />
         <Route path="/checkout/payment-gateway" element={<PaymentGateway />} />
