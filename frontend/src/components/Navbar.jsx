@@ -5,8 +5,9 @@ import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 import axios from 'axios';
 import {
-  ShoppingBag, LogIn, LogOut, ShoppingCart, Menu, X, Search, ChevronDown, Layers, UserPlus, MapPin
+  ShoppingBag, LogIn, LogOut, ShoppingCart, Menu, X, Search, ChevronDown, Layers, UserPlus, MapPin, Heart
 } from 'lucide-react';
+
 
 export default function Navbar({ onCartOpen }) {
   const { user, logout } = useAuth();
@@ -170,6 +171,15 @@ export default function Navbar({ onCartOpen }) {
           {/* User Profile & Cart Drawer */}
           <div className="flex items-center gap-3 shrink-0">
 
+            {!isAdmin && (
+              <Link
+                to="/hot-deals"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#E32636] hover:bg-[#c11f2d] text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md transition-all duration-300 animate-pulse cursor-pointer shrink-0"
+              >
+                🔥 HOT DEALS
+              </Link>
+            )}
+
             {/* Cart triggers */}
             {!isAdmin && (
               <button
@@ -206,7 +216,6 @@ export default function Navbar({ onCartOpen }) {
               <div className="flex items-center gap-3">
                 <div className="hidden sm:flex flex-col items-end leading-none text-white">
                   <span className="text-xs font-bold">{user.name}</span>
-                  <span className="text-[9px] text-white/70 capitalize mt-0.5">{user.role} profile</span>
                 </div>
                 <div className="relative group">
                   <div className="w-9 h-9 rounded-full bg-[#ffcc00] text-slate-900 font-extrabold flex items-center justify-center text-sm border border-yellow-450/40 cursor-pointer shadow-sm">
@@ -218,6 +227,7 @@ export default function Navbar({ onCartOpen }) {
                     {isCustomer ? (
                       <>
                         <Link to="/customer/dashboard" className="block px-4.5 py-2 text-xs text-slate-700 hover:bg-slate-50 hover:text-[#023e2b] font-bold transition">Dashboard</Link>
+                        <Link to="/customer/dashboard?tab=wishlist" className="block px-4.5 py-2 text-xs text-slate-700 hover:bg-slate-50 hover:text-[#023e2b] font-bold transition">My Favorites</Link>
                         <Link to="/customer/orders" className="block px-4.5 py-2 text-xs text-slate-700 hover:bg-slate-50 hover:text-[#023e2b] font-bold transition">My Orders</Link>
                         <Link to="/customer/profile" className="block px-4.5 py-2 text-xs text-slate-700 hover:bg-slate-50 hover:text-[#023e2b] font-bold transition">Profile Settings</Link>
                       </>
@@ -368,6 +378,15 @@ export default function Navbar({ onCartOpen }) {
 
           {/* Menu links list */}
           <div className="flex flex-col gap-1.5 border-t border-slate-100 pt-3">
+            {!isAdmin && (
+              <Link
+                to="/hot-deals"
+                onClick={() => setMobileMenuOpen(false)}
+                className="w-full text-center py-2.5 bg-[#E32636] hover:bg-[#c11f2d] text-white rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 shadow-md animate-pulse mb-1.5 cursor-pointer"
+              >
+                🔥 HOT DEALS
+              </Link>
+            )}
             {!user ? (
               <div className="flex flex-col gap-2">
                 <Link
