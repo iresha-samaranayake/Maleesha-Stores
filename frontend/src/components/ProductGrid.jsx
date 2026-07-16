@@ -17,7 +17,7 @@ const itemVariants = {
   }
 };
 
-export default function ProductGrid({ selectedCategory, searchQuery, isGridView, onlyDiscounts, showFavoritesOnly }) {
+export default function ProductGrid({ selectedCategory, searchQuery, isGridView }) {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -42,15 +42,7 @@ export default function ProductGrid({ selectedCategory, searchQuery, isGridView,
       }
 
       const res = await axios.get('/api/products', { params, headers });
-      let data = res.data;
-      if (onlyDiscounts) {
-        data = data.filter(p => p.discountPercentage > 0);
-      }
-      if (showFavoritesOnly) {
-        const savedWishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
-        data = data.filter(p => savedWishlist.includes(p._id));
-      }
-      setProducts(data);
+      setProducts(res.data);
       setLoading(false);
       setError(null);
     } catch (err) {
@@ -62,17 +54,7 @@ export default function ProductGrid({ selectedCategory, searchQuery, isGridView,
 
   useEffect(() => {
     fetchProducts();
-  }, [selectedCategory, searchQuery, showFavoritesOnly]);
-
-  useEffect(() => {
-    const handleStorageChange = () => {
-      if (showFavoritesOnly) {
-        fetchProducts();
-      }
-    };
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, [showFavoritesOnly, selectedCategory, searchQuery]);
+  }, [selectedCategory, searchQuery]);
 
   if (loading) {
     return (
