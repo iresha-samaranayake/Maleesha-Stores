@@ -6,7 +6,10 @@ const {
   getUserProfile,
   updateUserProfile,
   getUsers,
-  validateToken
+  validateToken,
+  getUserFavorites,
+  addToFavorites,
+  removeFromFavorites
 } = require('../controllers/authController');
 const { authenticateUser, authorizeRoles } = require('../middleware/authMiddleware');
 
@@ -16,6 +19,10 @@ router.get('/profile', authenticateUser, getUserProfile);
 router.put('/profile', authenticateUser, updateUserProfile);
 router.get('/users', authenticateUser, authorizeRoles('admin'), getUsers);
 router.get('/validate', authenticateUser, validateToken);
+
+router.get('/favorites', authenticateUser, getUserFavorites);
+router.post('/favorites', authenticateUser, addToFavorites);
+router.delete('/favorites/:productId', authenticateUser, removeFromFavorites);
 
 module.exports = router;
 
